@@ -1,0 +1,3013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="app-version" content="1.0.0">
+<title>Mozambique ISP Tracker</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121821;
+    --panel2:#161d28;
+    --border:#232c3a;
+    --text:#e8edf4;
+    --muted:#8493a8;
+    --accent:#4fd1c5;
+    --accent2:#7c9cff;
+    --green:#3ecf8e;
+    --yellow:#e8b93f;
+    --red:#e8615f;
+    --red-dark:#7a1e1e;
+    --grey:#5c6b80;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(circle at 20% -10%, #182233 0%, var(--bg) 45%) fixed;
+    color:var(--text);
+    min-height:100vh;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+  header{margin-bottom:28px;}
+  .eyebrow{
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin-bottom:8px;
+  }
+  h1{font-size:30px;margin:0 0 6px;font-weight:700;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:14px;}
+  .privacy-note{
+    margin-top:10px;font-size:12px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:8px 12px;display:inline-block;
+  }
+  .backend-banner{
+    margin-top:10px;font-size:12px;font-weight:600;border-radius:10px;
+    padding:9px 14px;display:inline-block;border:1px solid transparent;
+  }
+  .backend-banner.mode-local{background:rgba(232,185,63,.12);color:var(--yellow);border-color:rgba(232,185,63,.35);}
+  .backend-banner.mode-connecting{background:rgba(124,156,255,.12);color:var(--accent2);border-color:rgba(124,156,255,.35);}
+  .backend-banner.mode-live{background:rgba(62,207,142,.12);color:var(--green);border-color:rgba(62,207,142,.35);}
+  .backend-banner.mode-error{background:rgba(232,97,95,.12);color:var(--red);border-color:rgba(232,97,95,.35);}
+
+  .lang-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;}
+  .lang-label-text{font-size:12px;color:var(--muted);margin-right:2px;}
+  .need-translate{font-size:11px;opacity:.85;}
+
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;margin:24px 0;
+  }
+  .stat{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .stat .num{font-size:22px;font-weight:700;}
+  .stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    margin-bottom:18px;
+  }
+  .search{
+    flex:1 1 220px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:10px 14px;color:var(--text);font-size:14px;outline:none;
+  }
+  .search:focus{border-color:var(--accent2);}
+  .chip{
+    background:var(--panel);border:1px solid var(--border);border-radius:999px;
+    padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;
+    transition:.15s;user-select:none;
+  }
+  .chip.active{background:var(--accent2);border-color:var(--accent2);color:#0b0f14;font-weight:600;}
+  .chip:hover{border-color:var(--accent2);}
+  .spacer{flex:1 1 auto;}
+  .btn{
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+    padding:9px 14px;font-size:13px;color:var(--text);cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.small{padding:7px 11px;font-size:12px;}
+  .btn.primary{background:rgba(79,209,197,.15);border-color:rgba(79,209,197,.4);color:var(--accent);font-weight:600;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+  .list{display:flex;flex-direction:column;gap:10px;}
+  .row{
+    background:var(--panel);border:1px solid rgba(62,207,142,.35);border-radius:var(--radius);
+    padding:14px 16px;cursor:pointer;transition:.15s;
+  }
+  /* Light green border marks a clickable row with a drill-down (expand) behind it;
+     it goes solid/bold green once opened, so "clickable" and "currently open" read
+     as two distinct, deliberate states rather than one flat hover color. */
+  .row:hover{border-color:rgba(62,207,142,.6);}
+  .row.open{border-color:var(--green);border-width:2px;}
+  .row-top{display:flex;align-items:center;gap:12px;}
+  .rank{
+    font-size:12px;color:var(--muted);width:22px;flex:0 0 22px;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .name-wrap{flex:1 1 auto;min-width:0;}
+  .name{font-size:15px;font-weight:600;}
+  .type{font-size:12px;color:var(--muted);margin-top:2px;}
+  .subs{
+    font-size:15px;font-weight:700;text-align:right;flex:0 0 130px;
+    font-variant-numeric:tabular-nums;
+  }
+  .subs small{display:block;font-size:11px;color:var(--muted);font-weight:400;}
+  .qos-badge{
+    flex:0 0 110px;text-align:right;font-size:13px;font-weight:600;color:var(--yellow);
+    white-space:nowrap;
+  }
+  .qos-badge.empty{color:var(--muted);font-weight:400;font-size:11px;}
+  .pill{
+    flex:0 0 auto;font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;
+    text-transform:uppercase;letter-spacing:.04em;cursor:pointer;
+    border:1px solid transparent;
+  }
+  .pill.confirmed{background:rgba(62,207,142,.15);color:var(--green);border-color:rgba(62,207,142,.35);}
+  .pill.estimated{background:rgba(232,185,63,.15);color:var(--yellow);border-color:rgba(232,185,63,.35);}
+  .pill.unconfirmed{background:rgba(92,107,128,.18);color:var(--grey);border-color:rgba(92,107,128,.4);}
+
+  .detail{
+    max-height:0;overflow:hidden;transition:max-height .3s ease;
+  }
+  .row.open .detail{max-height:1200px;margin-top:12px;}
+  .detail-inner{
+    border-top:1px solid var(--border);padding-top:12px;font-size:13px;color:#c3cddb;line-height:1.55;
+  }
+  .detail-inner .src{color:var(--muted);font-size:12px;margin-top:8px;display:block;}
+
+  .caret{
+    flex:0 0 auto;color:var(--muted);font-size:12px;transition:transform .2s;
+  }
+  .row.open .caret{transform:rotate(90deg);}
+
+  .qos-section{
+    margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);
+  }
+  .qos-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .qos-title{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);}
+  .qos-avg{font-size:13px;color:var(--text);}
+  .qos-avg .muted{color:var(--muted);font-weight:400;}
+
+  .city-bars{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .city-bar-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+  .city-name{flex:0 0 100px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{flex:1 1 auto;height:6px;background:var(--panel2);border-radius:999px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:999px;}
+  .city-meta{flex:0 0 60px;text-align:right;color:var(--muted);}
+
+  .recent-reports{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+  .report{
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;
+  }
+  .report-stars{color:var(--yellow);margin-right:8px;}
+  .report-city{color:var(--accent2);font-weight:600;margin-right:8px;}
+  .report-time{color:var(--muted);}
+  .report-comment{margin-top:4px;color:#c3cddb;font-style:italic;}
+
+  .impact-badge{
+    margin-top:10px;font-size:12px;background:rgba(232,185,63,.1);border:1px solid rgba(232,185,63,.3);
+    border-radius:8px;padding:8px 10px;color:var(--yellow);
+  }
+
+  .qos-actions{margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+  .sync-note{font-size:11px;color:var(--muted);}
+
+  .rate-form{
+    display:none;flex-direction:column;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;
+  }
+  .star-picker{font-size:22px;letter-spacing:4px;color:var(--yellow);cursor:pointer;user-select:none;}
+  .star-pick{transition:.1s;}
+  .loc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .city-select{
+    background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-size:12px;padding:7px 10px;flex:1 1 160px;
+  }
+  .loc-status{font-size:12px;color:var(--muted);min-height:16px;}
+  .comment-box{
+    width:100%;min-height:56px;background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);font-size:13px;padding:8px 10px;resize:vertical;
+    font-family:inherit;
+  }
+  .comment-box:focus{outline:none;border-color:var(--accent2);}
+
+  .simple-toggle{
+    display:inline-flex;align-items:center;gap:10px;background:var(--panel);
+    border:2px solid var(--accent);border-radius:999px;padding:12px 20px;
+    font-size:15px;font-weight:700;color:var(--accent);margin-top:14px;
+  }
+  .simple-toggle:hover{background:var(--panel2);}
+  .simple-toggle[aria-pressed="true"]{background:var(--accent);color:#0b0f14;}
+  .simple-toggle .simple-emoji{font-size:22px;}
+  .simple-nav{
+    display:none;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:14px;margin:22px 0;
+  }
+  body.simple-mode .simple-nav{display:grid;}
+  body.simple-mode .stats{display:none;}
+  body.simple-mode .toolbar{display:none;}
+  .simple-btn{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;background:var(--panel);border:2px solid var(--border);
+    border-radius:20px;padding:22px 8px;min-height:112px;color:var(--text);
+    font-size:14px;font-weight:700;text-align:center;line-height:1.25;
+  }
+  .simple-btn:hover{border-color:var(--accent2);background:var(--panel2);}
+  .simple-btn[aria-pressed="true"]{border-color:var(--accent);background:rgba(79,209,197,.15);color:var(--accent);}
+  .simple-btn .simple-icon{font-size:42px;line-height:1;}
+  body.simple-mode .active-filter-banner{font-size:15px;padding:12px 18px;}
+  body.simple-mode .row{padding:18px 16px;}
+  body.simple-mode .rank{display:none;}
+  body.simple-mode .name{font-size:19px;}
+  body.simple-mode .subs small{display:none;}
+  body.simple-mode .pill{display:none;}
+  body.simple-mode .qos-badge{font-size:16px;font-weight:700;}
+  body.simple-mode .lang-row{gap:10px;}
+  body.simple-mode .lang-chip{font-size:14px;padding:10px 16px;}
+
+  footer{margin-top:28px;color:var(--muted);font-size:12px;text-align:center;line-height:1.6;}
+  .matokipedo-footer{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding-top:20px;border-top:1px solid var(--border);
+  }
+  .matokipedo-brand{display:flex;align-items:center;gap:10px;}
+  .matokipedo-logo{height:36px;width:auto;border-radius:6px;}
+  .matokipedo-tagline{font-size:12px;color:var(--muted);}
+  .matokipedo-footer .reset-link{font-size:11px;}
+  footer .reset-link{color:var(--accent2);cursor:pointer;text-decoration:underline;}
+
+  .feedback-panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin-top:18px;
+  }
+  .feedback-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;}
+  .feedback-row label{font-size:12px;color:var(--muted);flex:1 1 220px;}
+  .feedback-panel .comment-box{margin-top:6px;}
+
+  /* Translation panel */
+  .translate-panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin-bottom:18px;
+  }
+  .panel-head{margin-bottom:12px;}
+  .lexicon-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:6px;}
+  .lexicon-note a{color:var(--accent2);}
+  .translate-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .translate-form .comment-box,.translate-form .search,.translate-form button{grid-column:1 / -1;}
+  .translate-queue-title{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px;}
+  .translate-item{
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+    margin-bottom:8px;font-size:12px;
+  }
+  .translate-item .tlang{color:var(--accent2);font-weight:600;margin-right:6px;}
+  .translate-item .tkey{color:var(--muted);}
+  .translate-item .ttext{margin-top:4px;font-size:13px;}
+  .translate-item .tsource{color:var(--muted);font-size:11px;margin-top:2px;}
+  .translate-item .tactions{margin-top:8px;display:flex;align-items:center;gap:10px;}
+  .verified-badge{color:var(--green);font-weight:600;}
+  .empty-note{font-size:12px;color:var(--muted);}
+
+  /* Impact / signups tracker */
+  .impact-section{margin-top:34px;padding-top:20px;border-top:1px solid var(--border);}
+  .impact-head h2{font-size:20px;margin:6px 0 4px;}
+  .impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .impact-form-card,.impact-list-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+  }
+  .field-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .reason-tags{display:flex;flex-wrap:wrap;gap:8px;}
+  .reason-tag{
+    display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;
+  }
+  .reason-tag input{accent-color:var(--accent);}
+  .impact-story{
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+    margin-bottom:8px;font-size:12px;
+  }
+  .impact-story .arrow{color:var(--muted);}
+  .impact-breakdown{margin-bottom:14px;}
+
+  /* Live status (color-coded: green=live, yellow=partial, light red=down, dark red=down 24h+) */
+  .status-legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted);}
+  .legend-item{display:inline-flex;align-items:center;gap:6px;}
+  .legend-note{color:var(--muted);font-size:11px;}
+  .status-section{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);}
+  .backbone-badge{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:8px 10px;margin-bottom:10px;border:1px solid var(--border);border-left-width:3px;border-radius:6px;background:var(--panel-2, rgba(127,127,127,.06));}
+  .backbone-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none;}
+  .backbone-loading{opacity:.65;font-style:italic;}
+  .referral-cta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px;}
+  .referral-disclosure{font-size:11px;color:var(--muted);}
+  .status-dot{
+    display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;
+    vertical-align:middle;box-shadow:0 0 0 2px rgba(255,255,255,.04);
+  }
+  .status-dot-empty{background:var(--grey);opacity:.6;}
+  .status-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .status-row{
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+  }
+  .status-row.status-empty{color:var(--muted);}
+  .status-city{font-weight:600;flex:0 0 auto;}
+  .status-label{color:var(--text);}
+  .status-time{color:var(--muted);margin-left:auto;}
+  .status-report-form{
+    display:none;flex-direction:column;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;
+  }
+  .status-choices{display:flex;flex-wrap:wrap;gap:8px;}
+  .status-choice{
+    background:var(--panel);border:1px solid var(--border);border-radius:999px;
+    padding:7px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:.15s;
+  }
+  .status-choice:hover{border-color:var(--accent2);}
+  .status-choice.choice-live.active{background:rgba(62,207,142,.15);color:var(--green);border-color:rgba(62,207,142,.4);font-weight:600;}
+  .status-choice.choice-partial.active{background:rgba(232,185,63,.15);color:var(--yellow);border-color:rgba(232,185,63,.4);font-weight:600;}
+  .status-choice.choice-down.active{background:rgba(232,97,95,.15);color:var(--red);border-color:rgba(232,97,95,.4);font-weight:600;}
+
+  /* Bandwidth speed tracker (24h rolling, half-hour calibrated) */
+  .speed-section{margin-top:34px;padding-top:20px;border-top:1px solid var(--border);}
+  .speed-head h2{font-size:20px;margin:6px 0 4px;}
+  .speed-detail-section{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);}
+  .speed-rank-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+  .speed-rank-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-wrap:wrap;}
+  .speed-rank-num{width:22px;flex:0 0 22px;text-align:center;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;}
+  .speed-rank-name{flex:1 1 160px;min-width:0;font-weight:600;font-size:14px;display:flex;align-items:center;gap:2px;}
+  .speed-rank-bars{flex:2 1 220px;display:flex;flex-direction:column;gap:4px;min-width:140px;}
+  .speed-bar-track{height:6px;background:var(--panel2);border-radius:999px;overflow:hidden;}
+  .speed-bar-fill{height:100%;border-radius:999px;}
+  .speed-bar-label{font-size:11px;color:var(--muted);}
+  .speed-tier-badge{flex:0 0 auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:999px;}
+  .speed-no-data-list{margin-top:12px;font-size:12px;color:var(--muted);}
+  .speed-report-form{
+    display:none;flex-direction:column;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;
+  }
+  .speed-input-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .speed-input-field{flex:1 1 120px;}
+  .speed-input-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .speed-input{
+    width:100%;background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-size:13px;padding:8px 10px;font-family:inherit;
+  }
+  .speed-input:focus{outline:none;border-color:var(--accent2);}
+
+  @media (max-width:760px){
+    .impact-grid{grid-template-columns:1fr;}
+    .translate-form{grid-template-columns:1fr;}
+  }
+
+  /* Narrow phones: .row-top packs rank+name+subs+qos-badge+pill+caret in one
+     flex row with several fixed-width children (~370px+ combined) that never
+     fit under a 320px viewport without this — let it wrap onto a second line
+     instead of forcing horizontal scroll. */
+  @media (max-width:480px){
+    .row-top{flex-wrap:wrap;row-gap:6px;}
+    .name-wrap{flex:1 1 100%;order:1;}
+    .rank{order:0;}
+    .subs{flex:0 0 auto;text-align:left;order:2;}
+    .qos-badge{flex:0 0 auto;text-align:left;order:3;}
+    .pill{order:4;}
+    .caret{order:5;}
+  }
+
+  @media print{
+    body{background:#fff;color:#111;padding:0;}
+    .toolbar,.stats .stat:nth-child(n){display:none;}
+    .toolbar{display:none;}
+    .privacy-note,.backend-banner,.lang-row,.translate-panel,.status-legend{display:none;}
+    .row{border:1px solid #ccc;break-inside:avoid;}
+    .pill{border:1px solid #999;}
+    .caret{display:none;}
+    .row .detail{max-height:none!important;margin-top:8px!important;}
+    .qos-actions,.rate-form,.impact-form-card,.status-report-form,.speed-report-form{display:none!important;}
+  }
+</style>
+</head>
+<body>
+<!-- Matokipedo QC v1.0.0 — old-browser compatibility banner -->
+<div id="oldBrowserBanner" style="display:none;background:#3a2a10;color:#e8b93f;border:1px solid #5c4419;border-radius:8px;padding:10px 14px;margin:0 auto 16px;max-width:980px;font-size:13px;">
+  This page uses features your browser doesn't fully support, so parts of it may not work right. Try updating your
+  browser, or use the <a href="lite.html" style="color:#e8b93f;text-decoration:underline;">Lite version</a> — it
+  works everywhere, no JavaScript required.
+</div>
+<script>
+(function(){
+  try{
+    var ok = window.fetch && window.Promise && window.localStorage &&
+      Array.prototype.includes && Object.assign && window.CSS && CSS.supports &&
+      CSS.supports("display","grid") && CSS.supports("display","flex");
+    if(!ok){ document.getElementById("oldBrowserBanner").style.display = "block"; }
+  }catch(e){
+    var b = document.getElementById("oldBrowserBanner");
+    if(b){ b.style.display = "block"; }
+  }
+})();
+</script>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">INCM · Mozambique Telecoms</div>
+    <h1>Mozambique ISP Tracker</h1>
+    <div class="sub">4 tracked providers · mobile, fixed &amp; cable internet access · provider details compiled from company disclosures and press reporting (see individual notes) — INCM does not publish a consolidated operator report we could source for this build</div>
+    <div><span class="privacy-note">📍 Your GPS location is only used in your browser to work out the nearest tracked city — raw coordinates are never sent anywhere. Only the city name, star rating and comment are shared.</span></div>
+    <div><span class="privacy-note">📱 On an older phone, a dot-matrix screen, or a slow connection? <a href="lite.html" style="color:inherit;">Try the no-script Lite version</a> — tiny download, works without JavaScript, includes an SMS rating option.</span></div>
+    <div><span class="backend-banner mode-local" id="backendBanner">🟡 Local demo mode — connect a free Supabase backend to make ratings shared (see README.md)</span></div>
+    <div id="iodaBadge"></div>
+    <div class="status-legend" id="statusLegend">
+      <span class="legend-item"><span class="status-dot" style="background:var(--green)"></span> <span id="legendLiveLabel">Live</span></span>
+      <span class="legend-item"><span class="status-dot" style="background:var(--yellow)"></span> <span id="legendPartialLabel">Partial</span></span>
+      <span class="legend-item"><span class="status-dot" style="background:var(--red)"></span> <span id="legendDownLabel">Down</span></span>
+      <span class="legend-item"><span class="status-dot" style="background:var(--red-dark)"></span> <span id="legendDownLongLabel">Down 24h+</span></span>
+      <span class="legend-item legend-note">🚦 per-city status reported by users, most severe shown per ISP</span>
+    </div>
+    <div class="lang-row">
+      <span class="lang-label-text" id="langLabelText">Language</span>
+      <div class="chip lang-chip active" data-lang="en">English</div>
+      <div class="chip lang-chip" data-lang="pt">Português</div>
+      <div class="chip lang-chip" data-lang="vmw">Emakhuwa</div>
+      <div class="chip lang-chip" data-lang="ts">Xichangana</div>
+      <div class="chip lang-chip" data-lang="ny">Cinyanja</div>
+      <div class="chip lang-chip" data-lang="ngl">Elomwe</div>
+      <div class="chip lang-chip" data-lang="seh">Cisena</div>
+      <div class="chip lang-chip" data-lang="chw">Echuwabo</div>
+      <div class="chip lang-chip" data-lang="ndc">Cindau</div>
+      <div class="chip lang-chip" data-lang="tsc">Xitswa</div>
+      <button class="btn small" id="toggleTranslatePanel" type="button">🌍 <span id="translateHelpLabel">Help translate / suggest a correction</span></button>
+    </div>
+  </header>
+
+  <div class="translate-panel" id="translatePanel" style="display:none;">
+    <div class="panel-head">
+      <div class="qos-title">🌍 Community translation</div>
+      <div class="lexicon-note">
+        Portuguese is Mozambique's sole official language (Constitution, Article 10). Emakhuwa, Xichangana, Cinyanja, Elomwe, Cisena,
+        Echuwabo, Cindau and Xitswa are recognised national languages (Constitution, Article 9) that the state promotes as part of
+        Mozambique's cultural and educational heritage — they are not official languages, and this tracker doesn't blur that distinction.
+        Language figures are drawn from the 2017 census via Wikipedia's "Languages of Mozambique" article; the underlying primary source
+        (Mozambique's INE 2017 census) could not be independently verified in this research pass. Portuguese ships with a best-effort draft
+        translation of every UI string — none reviewed by a native speaker yet, treat it as a starting point. Cinyanja also ships a draft,
+        reused from the Zimbabwe site's Chewa content since Chewa and Cinyanja are the same standard language (ISO 639-3 nya). Xichangana
+        ships a draft too, reused from the Zimbabwe site's Shangani content, but at lower confidence since Xichangana and Shangani are
+        closely related Tswa-Ronga cluster languages rather than a confirmed identical standard — please prioritize reviewing that one.
+        Emakhuwa, Elomwe, Cisena, Echuwabo, Cindau and Xitswa are intentionally still blank rather than guessed: Cindau was meant to reuse
+        the Zimbabwe site's Ndau content (the Ndau people span the Zimbabwe–Mozambique border), but that content is itself still blank on
+        the Zimbabwe site as of this build, so there was nothing yet to reuse; the other four simply have no reliable draft source yet.
+        Note that Xitswa (Tswa) is a distinct language from Xichangana/Tsonga despite the similar-sounding name, so it is deliberately not
+        filled in from that content. Suggest corrections below for any of the nine languages shown; once a suggestion gets 2 community
+        endorsements it's promoted to "verified" and goes live automatically.
+      </div>
+    </div>
+    <div class="translate-form">
+      <select id="suggestLang" class="city-select">
+        <option value="pt">Português</option>
+        <option value="vmw">Emakhuwa</option>
+        <option value="ts">Xichangana</option>
+        <option value="ny">Cinyanja</option>
+        <option value="ngl">Elomwe</option>
+        <option value="seh">Cisena</option>
+        <option value="chw">Echuwabo</option>
+        <option value="ndc">Cindau</option>
+        <option value="tsc">Xitswa</option>
+      </select>
+      <select id="suggestKey" class="city-select"></select>
+      <div id="suggestCurrent" class="sync-note" style="grid-column:1 / -1;"></div>
+      <textarea id="suggestText" class="comment-box" placeholder="Your suggested translation…"></textarea>
+      <input id="suggestSource" class="search" placeholder="Optional: source/reference (e.g. Duramazwi Guru reChiShona, or 'native speaker')">
+      <button class="btn small primary" id="suggestSubmitBtn" type="button">Submit suggestion</button>
+    </div>
+    <div id="translateQueue"></div>
+  </div>
+
+  <button type="button" class="simple-toggle" id="simpleModeToggle" aria-pressed="false">
+    <span class="simple-emoji" aria-hidden="true">🧸</span>
+    <span id="simpleModeLabel">Simple Mode</span>
+  </button>
+  <div class="simple-nav" id="simpleNav" role="group" aria-label="Simple navigation"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input class="search" id="search" type="text" placeholder="Search ISPs…">
+    <div class="chip active" data-filter="all"><span id="filterAllLabel">All</span></div>
+    <div class="chip" data-filter="Mobile"><span id="filterMobileLabel">Mobile</span></div>
+    <div class="chip" data-filter="Fixed/Wireless"><span id="filterFixedLabel">Fixed &amp; Wireless</span></div>
+    <div class="spacer"></div>
+    <!-- Export options (PDF/CSV/EPUB) intentionally not included on this public demo — per the
+         established zwispqosd/bwispqosd/saispqosd pattern, those live on a privileged admin app
+         (moispqosp, not yet built) pulling full history from Supabase, not this page's capped
+         1000-row client cache. -->
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <section class="impact-section" id="impactSection">
+    <div class="impact-head">
+      <div class="eyebrow">Proof of impact</div>
+      <h2 id="impactTitleText">Switched or signed up because of what you found here?</h2>
+      <div class="sub" id="impactSubText">Tell us — this shows which ISPs are actually winning customers on reliability and support, not just price.</div>
+    </div>
+
+    <div class="stats" id="impactStats"></div>
+
+    <div class="impact-grid">
+      <div class="impact-form-card">
+        <div class="field-label" id="phoneSwitchLabel">Your phone number</div>
+        <input type="tel" class="search" id="impactPhone" placeholder="So we can help you switch — e.g. 82 123 4567" style="width:100%;margin-bottom:4px;">
+        <div class="lexicon-note" style="margin:0 0 10px;" id="phoneSwitchConsent">Only used to follow up about this switch request — never shown publicly.</div>
+        <div class="field-label" id="impactNewIspLabel">New / chosen ISP</div>
+        <select class="city-select" id="impactToIsp" style="width:100%;margin-bottom:10px;">
+          <option value="">—</option>
+        </select>
+        <div id="impactReferralCta"></div>
+        <div class="field-label" id="impactPrevIspLabel">Previous ISP (optional)</div>
+        <select class="city-select" id="impactFromIsp" style="width:100%;margin-bottom:10px;">
+          <option value="">—</option>
+        </select>
+        <div class="field-label" id="impactReasonsLabel">Why did you switch?</div>
+        <div class="reason-tags" id="impactReasonTags"></div>
+        <div class="loc-row" style="margin-top:12px;">
+          <button class="btn small" id="impactLocBtn" type="button">📍 <span id="impactLocLabel">Use my location</span></button>
+          <select class="city-select" id="impactCitySelect"><option value="">…</option></select>
+        </div>
+        <div class="loc-status" id="impactLocStatus"></div>
+        <textarea class="comment-box" id="impactComment" maxlength="500" style="margin-top:10px;" placeholder="Optional: tell us more…"></textarea>
+        <button class="btn small primary" id="impactSubmitBtn" style="margin-top:10px;" type="button"><span id="impactSubmitLabel">Submit</span></button>
+      </div>
+      <div class="impact-list-card">
+        <div id="impactBreakdown" class="impact-breakdown"></div>
+        <div id="impactRecent"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="speed-section" id="speedSection">
+    <div class="speed-head">
+      <div class="eyebrow">Bandwidth</div>
+      <h2 id="speedTitleText">Bandwidth Speeds — ranked, 24h rolling average</h2>
+      <div class="sub" id="speedSubText">Calibrated from crowdsourced speed test submissions: results are grouped into 30-minute windows over the last 24 hours and averaged window-by-window, so a burst of reports in one hour can't skew the number. Green = well above the cross-ISP average, yellow = around average, red = below average.</div>
+    </div>
+    <div id="radarBenchmark"></div>
+    <div class="stats" id="speedStats"></div>
+    <div id="speedRankedList"></div>
+  </section>
+
+  <section class="feedback-panel" id="feedbackPanel">
+    <div class="panel-head">
+      <strong>Help us improve this tracker</strong>
+      <div class="lexicon-note">Quick check for testers — used to fix location matching and rough edges. Nothing personal is collected.</div>
+    </div>
+    <div class="feedback-row">
+      <label>Did the location button detect the right city?</label>
+      <select class="city-select" id="fbLocation">
+        <option value="not_tried">Didn't try it</option>
+        <option value="yes">Yes, correct</option>
+        <option value="no">No, wrong city</option>
+      </select>
+    </div>
+    <div class="feedback-row">
+      <label>Overall, how did the site feel to use?</label>
+      <select class="city-select" id="fbUsability">
+        <option value="great">Great</option>
+        <option value="ok">OK</option>
+        <option value="confusing">Confusing</option>
+      </select>
+    </div>
+    <div class="feedback-row">
+      <label>Did your language look right?</label>
+      <select class="city-select" id="fbLanguage">
+        <option value="not_checked">Didn't check</option>
+        <option value="yes">Yes</option>
+        <option value="no">No, something's off</option>
+      </select>
+    </div>
+    <textarea class="comment-box" id="fbComment" maxlength="1000" placeholder="Anything confusing, broken, or missing? (optional)"></textarea>
+    <div class="feedback-row">
+      <input class="city-select" id="fbCity" maxlength="60" placeholder="Your city (optional)">
+      <button class="btn small primary" id="fbSubmit" type="button">Send feedback</button>
+    </div>
+    <div class="loc-status" id="fbStatus"></div>
+  </section>
+
+  <footer class="matokipedo-footer">
+    <div class="matokipedo-brand">
+      <img src="matokipedo-logo.jpg" alt="Matokipedo logo" class="matokipedo-logo">
+      <span class="matokipedo-tagline">Live infrastructure monitoring by Matokipedo</span>
+    </div>
+    <span class="reset-link" id="resetQos">refresh / reset local data</span>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;">v1.0.0 &middot; <a href="CHANGELOG.md" style="color:inherit;">changelog</a></div>
+  </footer>
+</div>
+
+<!-- Supabase JS client — free, open-source (Apache-2.0), loaded from jsDelivr CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Cloudflare Speed Test — free, open-source (BSD-3-Clause), no signup/API key; runs the
+     download/upload/latency/jitter/packet-loss measurement entirely client-side against
+     Cloudflare's public speedtest endpoints (the same infra behind speed.cloudflare.com). -->
+<script type="module">
+  // This import is a network fetch and is NOT synchronous with the classic <script> below —
+  // module scripts execute after the document is parsed, and the dynamic /+esm bundle can take
+  // anywhere from tens of ms to a few seconds to arrive (or fail outright if the CDN is
+  // unreachable or blocked by an extension). window.__CFSpeedTestReady lets other code AWAIT
+  // that outcome instead of racing it — see runAutoSpeedTest(), which used to just check
+  // `!window.__CFSpeedTest` at click time and, if the click came in before this promise settled,
+  // wrongly reported "not supported in this browser" (this was the real bug behind that message
+  // appearing identically in every browser: it's a load-timing/network issue, not a capability
+  // gap — every evergreen browser supports fetch/Promise/Worker).
+  window.__CFSpeedTestReady = import("https://cdn.jsdelivr.net/npm/@cloudflare/speedtest@1/+esm")
+    .then(mod => {
+      // jsDelivr's /+esm transform for this package exports the SpeedTest class as the default
+      // export, not a named `SpeedTest` export (confirmed live 2026-09-09: Object.keys(mod) was
+      // just ["default"]). The original code imported { SpeedTest } — always undefined — so the
+      // import "succeeded" but window.__CFSpeedTest was silently never actually set, and every
+      // real click fell into the load-failed message despite there being no real network/CDN
+      // problem at all. Accept either export shape, and treat a missing class as a genuine
+      // failure (not a false success) so window.__CFSpeedTestReady stays trustworthy.
+      const SpeedTestClass = mod.default || mod.SpeedTest;
+      if (typeof SpeedTestClass !== "function") throw new Error("SpeedTest export not found on @cloudflare/speedtest module");
+      window.__CFSpeedTest = SpeedTestClass;
+      return true;
+    })
+    .catch(err => { console.warn("Cloudflare Speed Test library failed to load", err); return false; });
+</script>
+<script>
+/* =========================================================================
+   SHARED BACKEND CONFIG
+   -------------------------------------------------------------------------
+   This dashboard works standalone (data saved only in your browser) OR with
+   a free Supabase backend so every visitor's ratings, switch/signup reports
+   and translation suggestions are shared.
+
+   To go live:
+     1. Create a free project at https://supabase.com (no credit card).
+     2. Open the SQL editor, paste & run the contents of schema.sql.
+     3. Project Settings → API → copy "Project URL" and "anon public" key.
+     4. Paste them below, replacing the two placeholder strings.
+     5. Commit + push — GitHub Pages redeploys automatically.
+   Full walkthrough in README.md.
+   ========================================================================= */
+const SUPABASE_CONFIG = {
+  url: "https://etdxreehedewcctkdvuo.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0ZHhyZWVoZWRld2NjdGtkdnVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzOTkwMDQsImV4cCI6MjEwMTk3NTAwNH0.8ohFQBJzglP2cjsdQW-xQ-g2DPNG0iZiNzRTLQDsVMY"
+};
+const SITE_ID = "mz"; // distinguishes this site's rows in the shared database
+
+const BACKEND_CONFIGURED = SUPABASE_CONFIG.url.indexOf("http") === 0
+  && SUPABASE_CONFIG.anonKey && SUPABASE_CONFIG.anonKey.indexOf("YOUR_") !== 0;
+
+let supa = null;
+if (BACKEND_CONFIGURED && window.supabase) {
+  supa = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+}
+
+/* =========================================================================
+   SPAM GUARD — free, open-source, no third-party service or signup needed.
+   Layered client-side defenses against bot/fake submissions (ratings,
+   status reports, speed tests, conversion reports, translation suggestions,
+   feedback). This is the FIRST line of defense only: anyone can bypass
+   client-side JS entirely and call the Supabase REST API directly with the
+   public anon key, so the real backstop lives in Postgres — see
+   supabase-antispam-migration.sql (RLS + CHECK constraints + a per-device
+   rate-limit trigger). Keep both layers; this one exists to give honest
+   users instant feedback and to cut casual/naive abuse before it ever
+   reaches the network.
+   ========================================================================= */
+const SpamGuard = (function(){
+  const DEVICE_KEY = "mz_isp_device_id";
+  const LOG_KEY = "mz_isp_submit_log";
+  const PAGE_LOAD_TS = Date.now();
+
+  // Stable-but-anonymous per-browser id, used for client-side rate limiting
+  // AND sent along with each submission so the server-side trigger can rate
+  // limit too. This is not identity — no PII, just a random token — and a
+  // determined bad actor can reset it by clearing site data, which is why
+  // it's a rate-limiting aid, not the only defense.
+  function deviceId(){
+    try{
+      let id = localStorage.getItem(DEVICE_KEY);
+      if(!id){
+        id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+          : "dev-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        localStorage.setItem(DEVICE_KEY, id);
+      }
+      return id;
+    }catch(e){ return "no-storage-" + Math.random().toString(36).slice(2); }
+  }
+
+  function readLog(){
+    try{ return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); }
+    catch(e){ return []; }
+  }
+  function writeLog(log){
+    try{ localStorage.setItem(LOG_KEY, JSON.stringify(log.slice(-200))); }catch(e){}
+  }
+
+  const LIMITS = {
+    perMinute: 3,      // across ALL submission types combined, this browser
+    perHour: 15,
+    perDay: 40,
+    cooldownMs: 4000   // minimum gap between any two submissions
+  };
+
+  // Basic spam-content signals: links/promo text have no legitimate reason
+  // to appear in a QoS comment. Not a full profanity filter — just the
+  // patterns that show up in scripted spam.
+  const SPAM_PATTERNS = [
+    /https?:\/\//i, /www\./i, /\[url=/i, /<\s*script/i,
+    /\b(viagra|cialis|casino|crypto\s*airdrop|forex\s*signals|make\s*money\s*fast|only\s*fans|onlyfans)\b/i
+  ];
+
+  function withinRate(){
+    const now = Date.now();
+    const log = readLog();
+    const last = log[log.length - 1];
+    if(last && (now - last) < LIMITS.cooldownMs) return { ok:false, reason:"too_fast" };
+    if(log.filter(t => now - t < 60*1000).length >= LIMITS.perMinute) return { ok:false, reason:"rate_minute" };
+    if(log.filter(t => now - t < 60*60*1000).length >= LIMITS.perHour) return { ok:false, reason:"rate_hour" };
+    if(log.filter(t => now - t < 24*60*60*1000).length >= LIMITS.perDay) return { ok:false, reason:"rate_day" };
+    return { ok:true };
+  }
+  function recordSubmit(){
+    const log = readLog();
+    log.push(Date.now());
+    writeLog(log);
+  }
+
+  function sanitizeText(str, maxLen){
+    let s = (str == null ? "" : String(str)).trim();
+    if(s.length > maxLen) s = s.slice(0, maxLen);
+    return s;
+  }
+  function looksLikeSpam(str){
+    if(!str) return false;
+    return SPAM_PATTERNS.some(re => re.test(str));
+  }
+
+  // Global honeypot field: invisible to sighted users and announced as
+  // hidden to screen readers, but present in the DOM so form-filling bots
+  // (which typically fill every input they can find, not just ones humans
+  // see) populate it. Any value in it at submit time means a bot touched
+  // the page, since no legitimate UI code ever writes to it.
+  let honeypotEl = null;
+  function ensureHoneypot(){
+    if(honeypotEl) return honeypotEl;
+    honeypotEl = document.createElement("input");
+    honeypotEl.type = "text";
+    honeypotEl.name = "website";
+    honeypotEl.autocomplete = "off";
+    honeypotEl.tabIndex = -1;
+    honeypotEl.setAttribute("aria-hidden", "true");
+    honeypotEl.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(honeypotEl);
+    return honeypotEl;
+  }
+  try{ ensureHoneypot(); }catch(e){ /* DOM not ready yet in some load orders */ }
+
+  let toastEl = null;
+  function toast(msg){
+    try{
+      if(!toastEl){
+        toastEl = document.createElement("div");
+        toastEl.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);"
+          + "background:#2b2438;color:#f2ede4;border:1px solid #3a3149;border-radius:10px;"
+          + "padding:10px 16px;font-size:13px;max-width:90vw;z-index:99999;box-shadow:0 4px 18px rgba(0,0,0,.35);";
+        document.body.appendChild(toastEl);
+      }
+      toastEl.textContent = msg;
+      toastEl.style.display = "block";
+      clearTimeout(toastEl._hideTimer);
+      toastEl._hideTimer = setTimeout(()=>{ toastEl.style.display = "none"; }, 3800);
+    }catch(e){ console.warn(msg); }
+  }
+
+  // Call before any insert. actionLabel is just for logging; commentText is
+  // whatever free-text field that submission carries (or "" if none).
+  function check(actionLabel, commentText){
+    if(!honeypotEl) ensureHoneypot();
+    if(honeypotEl && honeypotEl.value){
+      console.warn("SpamGuard: honeypot triggered on", actionLabel);
+      toast("Couldn't submit that — please try again.");
+      return { ok:false };
+    }
+    if(Date.now() - PAGE_LOAD_TS < 1500){
+      toast("Please take a moment before submitting.");
+      return { ok:false };
+    }
+    if(!withinRate().ok){
+      toast("You're submitting a lot in a short time — please slow down and try again shortly.");
+      return { ok:false };
+    }
+    if(looksLikeSpam(commentText)){
+      toast("That comment looks like spam (links/promo text aren't allowed) — please rephrase.");
+      return { ok:false };
+    }
+    return { ok:true };
+  }
+  function pass(){ recordSubmit(); }
+
+  return { deviceId, sanitizeText, check, pass };
+})();
+
+/* =========================================================================
+   i18n — UI chrome only. ISP names, POTRAZ notes and statistics are kept in
+   English everywhere (translating regulatory/statistical text risks
+   introducing errors, and isn't something a crowdsourced review pass can
+   safely validate). ChiShona/IsiNdebele below are an unreviewed first draft.
+   TjiKalanga is intentionally empty — see the translation panel for why.
+   ========================================================================= */
+const I18N = {
+  en: {
+    lang_label: "Language",
+    translate_help: "Help translate / suggest a correction",
+    banner_local: "🟡 Local demo mode — connect a free Supabase backend to make ratings shared (see README.md)",
+    banner_connecting: "⏳ Connecting to shared backend…",
+    banner_live: "🟢 Connected — ratings are shared with every visitor (Supabase)",
+    banner_error: "🔴 Couldn't reach the shared backend — showing locally cached data only",
+    search_placeholder: "Search ISPs…",
+    filter_all: "All",
+    filter_mobile: "Mobile",
+    filter_fixed: "Fixed & Wireless",
+    qos_title: "Quality of Service — crowdsourced",
+    btn_rate: "Rate this ISP",
+    your_rating: "Your rating",
+    btn_use_location: "Use my location",
+    city_manual: "…or choose city manually",
+    comment_placeholder: "Optional: describe your experience (speed, reliability, outages)…",
+    btn_submit_rating: "Submit rating",
+    no_ratings_yet: "No ratings yet",
+    no_reports_yet: "No reports yet — be the first to rate this ISP.",
+    sync_shared: "shared with all visitors",
+    sync_local: "saved to this browser only",
+    impact_badge: "🎉 {n} people reported switching to or signing up with this provider after using this tracker.",
+    impact_title: "Switched or signed up because of what you found here?",
+    impact_sub: "Tell us — this shows which ISPs are actually winning customers on reliability and support, not just price.",
+    impact_new_isp: "New / chosen ISP",
+    impact_prev_isp: "Previous ISP (optional)",
+    impact_reasons: "Why did you switch?",
+    reason_reliability: "Reliability",
+    reason_support: "Customer support",
+    reason_price: "Price",
+    reason_speed: "Speed",
+    reason_coverage: "Coverage",
+    reason_other: "Other",
+    btn_submit_story: "Submit",
+    footer_note1: "Click a row to expand",
+    footer_note2: "click any status pill to cycle confirmed → estimated → unconfirmed · search and filter above",
+    reset_link: "refresh / reset local data",
+    stat_isps: "ISPs tracked",
+    stat_reports: "crowdsourced QoS reports",
+    stat_conversions: "reported switches / signups",
+    live_status_title: "Live Status — reported by users",
+    report_status: "Report current status",
+    status_live: "Live",
+    status_partial: "Partial",
+    status_down: "Down",
+    status_down_long: "Down 24h+",
+    no_status_yet: "No status reports yet — be the first to report.",
+    btn_submit_status: "Submit status",
+    bandwidth_title: "Bandwidth Speeds — 24h rolling, crowdsourced",
+    report_speed: "Report a speed test",
+    download_label: "Download (Mbps)",
+    upload_label: "Upload (Mbps)",
+    btn_submit_speed: "Submit speed test",
+    no_speed_data: "No speed tests reported in the last 24 hours",
+    no_speed_reports_yet: "No speed tests reported yet — be the first.",
+    speed_ranking_title: "Bandwidth Speeds — ranked, 24h rolling average",
+    speed_ranking_sub: "Calibrated from crowdsourced speed test submissions: results are grouped into 30-minute windows over the last 24 hours and averaged window-by-window, so a burst of reports in one hour can't skew the number. Green = well above the cross-ISP average, yellow = around average, red = below average.",
+    stat_speed_isps: "ISPs with 24h speed data",
+    stat_speed_reports: "speed test reports (24h window)",
+    speed_no_recent_any: "No speed tests reported in the last 24 hours yet.",
+    speed_no_recent: "No recent (24h) data",
+    phone_label: "Your phone number (optional)",
+    phone_placeholder: "e.g. 82 123 4567",
+    phone_consent: "Only used to follow up about this report or switch request — never shown publicly.",
+    phone_detect_hint: "📱 Looks like {isp}, based on your number — numbers can be ported, please confirm.",
+    phone_label_switch: "Your phone number",
+    phone_placeholder_switch: "So we can help you switch — e.g. 82 123 4567",
+    phone_required_note: "Please add a phone number so we can follow up about your switch.",
+    simple_mode_off: "Simple Mode",
+    simple_mode_on: "Simple Mode: ON",
+    simple_nav_reset: "Show all",
+    simple_nav_mobile: "Phone internet",
+    simple_nav_fixed: "Home internet",
+    simple_nav_best: "Best rated",
+    simple_nav_near: "Near me",
+    simple_nav_lang: "Language",
+    btn_run_speed_test: "▶ Run automatic test",
+    speed_auto_note: "Uses a small amount of data (usually under 10MB). On a limited plan? Just type your numbers below instead.",
+    speed_auto_running: "Running speed test… please don't close this tab.",
+    speed_auto_done: "Done — results filled in below. Review and submit.",
+    speed_auto_unsupported: "Automatic testing isn't supported in this browser — enter your numbers manually below.",
+    speed_auto_loading: "Loading the speed test tool…",
+    speed_auto_load_failed: "Couldn't load the automatic speed test (network or ad-blocker issue) — enter your numbers manually below.",
+    speed_auto_failed: "Couldn't complete the automatic test — enter your numbers manually below.",
+    speed_method_auto: "Automatic",
+    speed_method_manual: "Manual"
+  },
+  pt: { // Português — best-effort draft, unreviewed by a native speaker
+    lang_label: "Idioma",
+    translate_help: "Ajude a traduzir / sugira uma correção",
+    banner_local: "🟡 Modo de demonstração local — ligue um backend Supabase gratuito para partilhar as avaliações (veja o README.md)",
+    banner_connecting: "⏳ A ligar ao backend partilhado…",
+    banner_live: "🟢 Ligado — as avaliações são partilhadas com todos os visitantes (Supabase)",
+    banner_error: "🔴 Não foi possível aceder ao backend partilhado — a mostrar apenas dados guardados localmente",
+    search_placeholder: "Pesquisar operadores…",
+    filter_all: "Todos",
+    filter_mobile: "Móvel",
+    filter_fixed: "Fixo e sem fios",
+    qos_title: "Qualidade de Serviço — dados dos utilizadores",
+    btn_rate: "Avaliar este operador",
+    your_rating: "A sua avaliação",
+    btn_use_location: "Usar a minha localização",
+    city_manual: "…ou escolha a cidade manualmente",
+    comment_placeholder: "Opcional: descreva a sua experiência (velocidade, fiabilidade, quebras de serviço)…",
+    btn_submit_rating: "Enviar avaliação",
+    no_ratings_yet: "Ainda sem avaliações",
+    no_reports_yet: "Ainda sem relatos — seja o primeiro a avaliar este operador.",
+    sync_shared: "partilhado com todos os visitantes",
+    sync_local: "guardado apenas neste navegador",
+    impact_badge: "🎉 {n} pessoas relataram ter mudado para este operador, ou aderido a ele, depois de usar este tracker.",
+    impact_title: "Mudou de operador ou aderiu a um por causa do que encontrou aqui?",
+    impact_sub: "Diga-nos — isto mostra quais os operadores que realmente conquistam clientes pela fiabilidade e pelo apoio ao cliente, não apenas pelo preço.",
+    impact_new_isp: "Operador novo / escolhido",
+    impact_prev_isp: "Operador anterior (opcional)",
+    impact_reasons: "Porque é que mudou?",
+    reason_reliability: "Fiabilidade",
+    reason_support: "Apoio ao cliente",
+    reason_price: "Preço",
+    reason_speed: "Velocidade",
+    reason_coverage: "Cobertura",
+    reason_other: "Outro",
+    btn_submit_story: "Enviar",
+    footer_note1: "Clique numa linha para expandir",
+    footer_note2: "clique em qualquer estado para alternar entre confirmado → estimado → não confirmado · pesquise e filtre acima",
+    reset_link: "atualizar / repor os dados locais",
+    stat_isps: "Operadores monitorizados",
+    stat_reports: "relatos de QoS dos utilizadores",
+    stat_conversions: "mudanças / adesões relatadas",
+    live_status_title: "Estado Atual — relatado pelos utilizadores",
+    report_status: "Relatar estado atual",
+    status_live: "Ativo",
+    status_partial: "Parcial",
+    status_down: "Inativo",
+    status_down_long: "Inativo há mais de 24h",
+    no_status_yet: "Ainda sem relatos de estado — seja o primeiro a relatar.",
+    btn_submit_status: "Enviar estado",
+    bandwidth_title: "Velocidades — média móvel de 24h, dados dos utilizadores",
+    report_speed: "Relatar um teste de velocidade",
+    download_label: "Download (Mbps)",
+    upload_label: "Upload (Mbps)",
+    btn_submit_speed: "Enviar teste de velocidade",
+    no_speed_data: "Sem testes de velocidade relatados nas últimas 24 horas",
+    no_speed_reports_yet: "Ainda sem testes de velocidade relatados — seja o primeiro.",
+    speed_ranking_title: "Velocidades — classificadas, média móvel de 24h",
+    speed_ranking_sub: "Calculado a partir dos testes de velocidade enviados pelos utilizadores: os resultados são agrupados em janelas de 30 minutos ao longo das últimas 24 horas e depois é calculada a média de cada janela, para que uma onda de relatos numa só hora não distorça o número. Verde = bem acima da média entre operadores, amarelo = perto da média, vermelho = abaixo da média.",
+    stat_speed_isps: "Operadores com dados de velocidade (24h)",
+    stat_speed_reports: "relatos de testes de velocidade (janela de 24h)",
+    speed_no_recent_any: "Ainda não há testes de velocidade relatados nas últimas 24 horas.",
+    speed_no_recent: "Sem dados recentes (24h)"
+  },
+  vmw: {}, // Emakhuwa — deliberately empty; fill in via the translation panel
+  ts: { // Xichangana — best-effort draft, unreviewed, LOWER CONFIDENCE; reused from the Zimbabwe site's Shangani content (closely related Tswa-Ronga cluster language, not a confirmed identical standard)
+    lang_label: "Ririmi",
+    translate_help: "Pfuna ku hundzuluxa / nyika nhlamuselo leyi lulamisiweke",
+    banner_local: "🟡 Muxaka wa laha kaya — hlanganisa Supabase (mahala) leswaku vuxokoxoko byi avelana (vona README.md)",
+    banner_connecting: "⏳ Ya hlanganisa na network leyi avelanaka…",
+    banner_live: "🟢 Yi hlanganisiwile — vuxokoxoko byi avelana na vaendzi hinkwavo (Supabase)",
+    banner_error: "🔴 Swi tsandzekile ku fikelela network leyi avelanaka — swi kombisa vuxokoxoko lebyi hlayisiweke eka bulawuza leyi ntsena",
+    search_placeholder: "Lava vaphakeri va inthanete…",
+    filter_all: "Hinkwaswo",
+    filter_mobile: "Foni",
+    filter_fixed: "Leyi hlanganisiweke & Ku hava tinguvu",
+    qos_title: "Ntiyiso wa Ntirho — lowu humaka eka vanhu",
+    btn_rate: "Nyika muphakeri loyi mavondzo",
+    your_rating: "Mavondzo ya wena",
+    btn_use_location: "Tirhisa ndhawu ya mina",
+    city_manual: "…kumbe hlawula muti hi xiyexe",
+    comment_placeholder: "A hi swa nkoka: hlamusela mintokoto ya wena (rivilo, ku tshembeka, ku hela ka network)…",
+    btn_submit_rating: "Rhumela Mavondzo",
+    no_ratings_yet: "A ku na mavondzo sweswi",
+    no_reports_yet: "A ku na swiviko sweswi — va wo sungula ku nyika muphakeri loyi mavondzo.",
+    sync_shared: "yi avelana na vaendzi hinkwavo",
+    sync_local: "yi hlayisiwile eka bulawuza leyi ntsena",
+    impact_badge: "🎉 Vanhu va {n} va vike leswaku va hundzukele eka muphakeri loyi kumbe va tsarisile endzhaku ka ku tirhisa tracker leyi.",
+    impact_title: "Xana u hundzukile kumbe u tsarisile hikwalaho ka leswi u swi kumeke laha?",
+    impact_sub: "Hi byela — leswi swi kombisa leswaku i muphakeri muni loyi a hlulaka vaxavi hikwalaho ka ku tshembeka na nseketelo, ku nga ri ntsengo ntsena.",
+    impact_new_isp: "Muphakeri lontshwa / lowu u n'wi hlawuleke",
+    impact_prev_isp: "Muphakeri wo sungula (a hi swa nkoka)",
+    impact_reasons: "Ha yini u hundzukile?",
+    reason_reliability: "Ku tshembeka",
+    reason_support: "Nseketelo wa vaxavi",
+    reason_price: "Ntsengo",
+    reason_speed: "Rivilo",
+    reason_coverage: "Ku fikelela ka network",
+    reason_other: "Swin'wana",
+    btn_submit_story: "Rhumela",
+    footer_note1: "Chukumita nkoka leswaku wu wu kula",
+    footer_note2: "chukumita xikombiso xin'wana ni xin'wana xa xiyimo leswaku xi rhendzeleka ku suka eka confirmed ku ya eka estimated ku ya eka unconfirmed · lava naswona hlawula laha henhla",
+    reset_link: "antswisa / vuyisela vuxokoxoko bya laha",
+    stat_isps: "Vaphakeri lava landzeleriwaka",
+    stat_reports: "Swiviko swa QoS leswi humaka eka vanhu",
+    stat_conversions: "Ku hundzuka/ku tsarisa leswi vikiweke",
+    live_status_title: "Xiyimo xa Sweswi — lexi vikiwaka hi vatirhisi",
+    report_status: "Vika xiyimo xa sweswi",
+    status_live: "Yi tirha",
+    status_partial: "Xiphemu",
+    status_down: "A yi tirhi",
+    status_down_long: "A yi tirhi nkarhi wo leha (24h+)",
+    no_status_yet: "A ku na swiyimo leswi vikiweke sweswi — va wo sungula ku vika.",
+    btn_submit_status: "Rhumela Xiyimo",
+    bandwidth_title: "Rivilo ra Network — tiawara ta 24 leti hundzeke, leti humaka eka vanhu",
+    report_speed: "Vika ndzingo wa rivilo",
+    download_label: "Download (Mbps)",
+    upload_label: "Upload (Mbps)",
+    btn_submit_speed: "Rhumela Ndzingo wa Rivilo",
+    no_speed_data: "A ku na tindzingo ta rivilo leti vikiweke eka tiawara ta 24 leti hundzeke",
+    no_speed_reports_yet: "A ku na tindzingo ta rivilo leti vikiweke sweswi — va wo sungula.",
+    speed_ranking_title: "Rivilo ra Network — leri hlawuriweke, tiawara ta 24",
+    speed_ranking_sub: "Swi huma eka tindzingo ta rivilo leti nyikeriweke hi vanhu: mbuyelo yi vekiwa eka mintlawa ya timinete ta 30 eka tiawara ta 24 leti hundzeke kutani yi hlayiwa ntlawa hi ntlawa, leswaku swiviko swo tala hi nkarhi wun'we swi nga cinci nomboro. Green = ehenhla ka average ya vaphakeri hinkwavo, yellow = ekusuhi na average, red = ehansi ka average.",
+    stat_speed_isps: "Vaphakeri lava nga na vuxokoxoko bya rivilo (24h)",
+    stat_speed_reports: "Swiviko swa rivilo (eka tiawara ta 24)",
+    speed_no_recent_any: "A ku na tindzingo ta rivilo leti vikiweke eka tiawara ta 24 leti hundzeke.",
+    speed_no_recent: "A ku na vuxokoxoko byo pfhukela (24h)"
+  },
+  ny: { // Cinyanja — best-effort draft, unreviewed; reused from the Zimbabwe site's Chewa content (same language, ISO 639-3 nya)
+    lang_label: "Chinenero",
+    translate_help: "Thandizani kumasulira / perekani kukonzedwa",
+    banner_local: "🟡 Njira yakomweko — lumikizani ndi Supabase (yaulere) kuti deta igawidwe (onani README.md)",
+    banner_connecting: "⏳ Kulumikizana ndi netiweki yogawana…",
+    banner_live: "🟢 Yalumikizidwa — deta ikugawidwa ndi alendo onse (Supabase)",
+    banner_error: "🔴 Zalephera kufikira netiweki yogawana — kukuonetsa deta yosungidwa mu bulawuza iyi yokha",
+    search_placeholder: "Sakani opereka intaneti…",
+    filter_all: "Zonse",
+    filter_mobile: "Foni",
+    filter_fixed: "Yolumikizidwa & Yopanda Waya",
+    qos_title: "Ubwino wa Ntchito — wochokera kwa anthu",
+    btn_rate: "Perekani mfundo kwa opereka uyu",
+    your_rating: "Mfundo zanu",
+    btn_use_location: "Gwiritsani ntchito malo anga",
+    city_manual: "…kapena sankhani mzinda nokha",
+    comment_placeholder: "Osakakamiza: fotokozani zomwe mudakumana nazo (liwiro, kukhulupirika, kudula kwa netiweki)…",
+    btn_submit_rating: "Tumizani Mfundo",
+    no_ratings_yet: "Palibe mfundo pakadali pano",
+    no_reports_yet: "Palibe malipoti pakadali pano — khalani woyamba kupereka mfundo kwa opereka uyu.",
+    sync_shared: "zikugawidwa ndi alendo onse",
+    sync_local: "zasungidwa mu bulawuza iyi yokha",
+    impact_badge: "🎉 Anthu {n} anena kuti asintha kapena kulembetsa kwa opereka uyu atagwiritsa ntchito tracker iyi.",
+    impact_title: "Munasintha kapena kulembetsa chifukwa cha zomwe mudapeza pano?",
+    impact_sub: "Tiuzeni — izi zikuwonetsa opereka amene akupambana makasitomala chifukwa cha kukhulupirika ndi thandizo, osati mtengo wokha.",
+    impact_new_isp: "Opereka Watsopano / Amene Musankha",
+    impact_prev_isp: "Opereka Wakale (osakakamiza)",
+    impact_reasons: "Chifukwa chiyani munasintha?",
+    reason_reliability: "Kukhulupirika",
+    reason_support: "Thandizo la makasitomala",
+    reason_price: "Mtengo",
+    reason_speed: "Liwiro",
+    reason_coverage: "Kufikira kwa netiweki",
+    reason_other: "Zina",
+    btn_submit_story: "Tumizani",
+    footer_note1: "Dinani mzere kuti muwuone bwino",
+    footer_note2: "dinani chizindikiro cha mkhalidwe kuti muzungulire kuchoka pa confirmed kupita ku estimated kupita ku unconfirmed · sakani ndi kusankha pamwambapa",
+    reset_link: "konzaninso / bwezerani deta ya pano",
+    stat_isps: "Opereka omwe akutsatiridwa",
+    stat_reports: "Malipoti a QoS ochokera kwa anthu",
+    stat_conversions: "Kusintha/kulembetsa komwe kwaneneka",
+    live_status_title: "Mkhalidwe wa Pano — wonenedwa ndi ogwiritsa ntchito",
+    report_status: "Nenani mkhalidwe wapano",
+    status_live: "Ikugwira ntchito",
+    status_partial: "Pang'ono",
+    status_down: "Sikugwira ntchito",
+    status_down_long: "Sikugwira ntchito kwa nthawi yaitali (24h+)",
+    no_status_yet: "Palibe mkhalidwe wonenedwa pakadali pano — khalani woyamba kunena.",
+    btn_submit_status: "Tumizani Mkhalidwe",
+    bandwidth_title: "Liwiro la Netiweki — maola 24 apitawa, ochokera kwa anthu",
+    report_speed: "Nenani kuyesa kwa liwiro",
+    download_label: "Download (Mbps)",
+    upload_label: "Upload (Mbps)",
+    btn_submit_speed: "Tumizani Kuyesa kwa Liwiro",
+    no_speed_data: "Palibe kuyesa kwa liwiro kwanenedwa mu maola 24 apitawa",
+    no_speed_reports_yet: "Palibe kuyesa kwa liwiro kwanenedwa pakadali pano — khalani woyamba.",
+    speed_ranking_title: "Liwiro la Netiweki — lolamulidwa, maola 24",
+    speed_ranking_sub: "Zochokera ku kuyesa kwa liwiro komwe kwaperekedwa ndi anthu: zotsatira zimaikidwa m'magulu a mphindi 30 mu maola 24 apitawa ndikuwerengedwa gulu ndi gulu, kotero kuti malipoti ambiri panthawi imodzi asasokoneze nambala. Green = pamwamba pa avareji ya opereka onse, yellow = pafupi ndi avareji, red = pansi pa avareji.",
+    stat_speed_isps: "Opereka omwe ali ndi deta ya liwiro (24h)",
+    stat_speed_reports: "Malipoti a liwiro (mu maola 24)",
+    speed_no_recent_any: "Palibe kuyesa kwa liwiro kwanenedwa mu maola 24 apitawa.",
+    speed_no_recent: "Palibe deta yaposachedwa (24h)"
+  },
+  ngl: {}, // Elomwe — deliberately empty; fill in via the translation panel
+  seh: {}, // Cisena — deliberately empty; fill in via the translation panel
+  chw: {}, // Echuwabo — deliberately empty; fill in via the translation panel
+  ndc: {}, // Cindau — reused from the Zimbabwe site's Ndau content (same language, spoken across the Zimbabwe-Mozambique border) — but Zimbabwe's own Ndau block is itself still blank in the v1.2.0 baseline this build started from, so there was nothing yet to reuse; ships blank rather than guessed.
+  tsc: {} // Xitswa — deliberately empty; fill in via the translation panel (Tswa is a DISTINCT language from Xichangana/Tsonga despite the similar-sounding name — do not reuse Xichangana content here)
+};
+const LANG_NAMES = {
+  en:"English", pt:"Português", vmw:"Emakhuwa", ts:"Xichangana", ny:"Cinyanja",
+  ngl:"Elomwe", seh:"Cisena", chw:"Echuwabo", ndc:"Cindau", tsc:"Xitswa"
+};
+const TRANSLATABLE_KEYS = Object.keys(I18N.en);
+
+let currentLang = "en";
+try{ currentLang = localStorage.getItem("mz_isp_lang") || "en"; }catch(e){}
+let translationOverrides = {};
+
+function t(key){
+  const overrideMap = translationOverrides[currentLang];
+  if(overrideMap && overrideMap[key]) return overrideMap[key];
+  const baseMap = I18N[currentLang] || {};
+  if(baseMap[key]) return baseMap[key];
+  return I18N.en[key] || key;
+}
+function isFallback(key){
+  const overrideMap = translationOverrides[currentLang];
+  if(overrideMap && overrideMap[key]) return false;
+  const baseMap = I18N[currentLang] || {};
+  return currentLang !== "en" && !baseMap[key];
+}
+function tt(key){
+  const val = t(key);
+  return isFallback(key) ? val + ' <span class="need-translate" title="No community translation yet — showing English">🚧</span>' : val;
+}
+
+/* ---------- Reference / subscriber data ---------- */
+const DATA = [
+  {
+    name: "Vodacom Moçambique",
+    type: "Mobile",
+    subscribers: 12400000,
+    subLabel: "customers (company-published, FY2025, as of 31 March 2025)",
+    status: "confirmed",
+    note: "Majority owned by Vodacom Group (South Africa; itself majority-owned by Vodafone Group plc, UK); local shareholders include Intelec Holdings and the Emotel consortium (exact stakes unconfirmed). Offers 2G/3G/4G/5G mobile, fixed broadband and M-Pesa mobile money. Company-published figure: 12.4 million customers as of 31 March 2025 (FY2025 results) — not an INCM-verified count.",
+    source: "360mozambique.com, 2025-05-26, reporting Vodacom Group FY2025 results (company-published)"
+  },
+  {
+    name: "Movitel",
+    type: "Mobile",
+    subscribers: null,
+    subLabel: "no published current subscriber count",
+    status: "unconfirmed",
+    note: "Joint venture of Viettel Group (Vietnam, state-owned) and SPI Gestão e Investimentos (Mozambican company); exact ownership split unconfirmed. Has the widest rural/district coverage of any operator (127+ district centers) plus its own fiber backbone. No published current subscriber count found in this research pass.",
+    source: "No INCM or company-published subscriber figure found (2026 research pass)"
+  },
+  {
+    name: "Tmcel",
+    type: "Mobile",
+    subscribers: null,
+    subLabel: "no published current subscriber count",
+    status: "unconfirmed",
+    note: "Moçambique Telecom, S.A. — 100% Mozambican state-owned. Formed January 2019 from the merger of TDM (fixed) and Mcel (mobile); these are not two separate current companies. Offers mobile, fixed-line voice and fixed broadband. No published current subscriber count found in this research pass.",
+    source: "No INCM or company-published subscriber figure found (2026 research pass)"
+  },
+  {
+    name: "TVCABO Moçambique",
+    type: "Fixed/Wireless",
+    subscribers: null,
+    subLabel: "no published current subscriber count",
+    status: "unconfirmed",
+    note: "Majority-owned by Visabeira Group (Portugal); a 2024 report referenced Visabeira 'seeking an 80% stake', implying it wasn't yet fully consolidated at that level — exact current stake unconfirmed. Offers fiber/cable broadband and pay-TV, primarily in urban areas (Maputo, Beira, Matola, Nampula). No published subscriber count found in this research pass.",
+    source: "No INCM or company-published subscriber figure found (2026 research pass)"
+  }
+];
+
+const STATUS_CYCLE = ["confirmed","estimated","unconfirmed"];
+const STATUS_LABEL = {confirmed:"Confirmed",estimated:"Estimated",unconfirmed:"Unconfirmed"};
+
+/* ---------- Live status (crowdsourced, color-coded) ----------
+   green = live, yellow = partial connection, light red = down,
+   dark red = down for 24h+ straight (computed from an unbroken
+   streak of "down" reports for that ISP+city, not stored directly). */
+const STATUS_META = {
+  live:        { color:"var(--green)",     label:"Live",       emoji:"🟢" },
+  partial:     { color:"var(--yellow)",    label:"Partial",    emoji:"🟡" },
+  down:        { color:"var(--red)",       label:"Down",       emoji:"🔴" },
+  "down-long": { color:"var(--red-dark)",  label:"Down 24h+",  emoji:"🟥" }
+};
+const STATUS_SEVERITY = { live:0, partial:1, down:2, "down-long":3 };
+
+/* ---------- Live backbone visibility (real, dynamic, no-auth feed) ----------
+   For ISPs that operate their own registered network (an ASN), we ask
+   RIPEstat (stat.ripe.net — RIPE NCC's free, public, no-signup data API)
+   whether that network is currently visible in the global internet routing
+   table, as seen live from dozens of real vantage points worldwide. This is
+   genuinely live data fetched directly from the browser — not crowdsourced,
+   not cached, not mocked. It answers one narrow, honest question: "has this
+   ISP's backbone been withdrawn from the global internet?" (the kind of
+   signal you'd see during a cable cut or a shutdown) — it is NOT "is my home
+   connection working right now"; that's what the crowdsourced Live Status
+   section is for. Only ISPs with a verified ASN are included (found via
+   RIPEstat's own searchcomplete/country-asns data calls — see README); the
+   rest simply don't show this card, rather than guessing. */
+const ISP_ASN = {
+  // Intentionally empty for this site: no verified ASN-to-ISP mapping has been compiled yet for
+  // Mozambique. The backboneHtml() card simply doesn't render for any ISP without an
+  // entry here (see backboneLevel/backboneHtml below) — this is the same graceful, already-supported
+  // code path the Zimbabwe site uses for its own untracked ISPs, not a bug.
+};
+
+const BACKBONE = {}; // isp -> {level, ratio, seen, total, ts} | null(failed) | undefined(loading)
+const BACKBONE_META = {
+  routed:    { color:"var(--green)",  label:"Globally routed" },
+  degraded:  { color:"var(--yellow)", label:"Partially visible" },
+  withdrawn: { color:"var(--red)",    label:"Withdrawn from routing table" }
+};
+function backboneLevel(ratio){
+  if(ratio >= 0.85) return "routed";
+  if(ratio >= 0.4) return "degraded";
+  return "withdrawn";
+}
+async function fetchBackboneVisibility(isp, asn){
+  try{
+    const res = await fetch(`https://stat.ripe.net/data/visibility/data.json?resource=AS${asn}`, { cache:"no-store" });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const json = await res.json();
+    const vis = (json && json.data && json.data.visibilities) || [];
+    if(vis.length===0){ BACKBONE[isp] = null; return; }
+    let seen=0, total=0;
+    vis.forEach(v=>{
+      const full = (v.ipv4_full_table_peer_count||0) + (v.ipv6_full_table_peer_count||0);
+      const notSeeing = (v.ipv4_full_table_peers_not_seeing||[]).length + (v.ipv6_full_table_peers_not_seeing||[]).length;
+      total += full;
+      seen += Math.max(0, full - notSeeing);
+    });
+    const ratio = total>0 ? seen/total : 0;
+    BACKBONE[isp] = { level: backboneLevel(ratio), ratio, seen, total, ts: Date.now() };
+  }catch(e){
+    console.warn("RIPEstat backbone visibility check failed for "+isp, e);
+    BACKBONE[isp] = null;
+  }
+}
+async function refreshBackboneVisibility(){
+  if(typeof fetch !== "function") return;
+  await Promise.all(Object.entries(ISP_ASN).map(([isp,asn])=>fetchBackboneVisibility(isp, asn)));
+  renderAll();
+}
+function backboneHtml(isp){
+  const asn = ISP_ASN[isp];
+  if(!asn) return "";
+  const b = BACKBONE[isp];
+  if(b === undefined) return `<div class="backbone-badge backbone-loading">🌐 Checking live backbone visibility via RIPEstat…</div>`;
+  if(b === null) return "";
+  const meta = BACKBONE_META[b.level];
+  const pct = Math.round(b.ratio*100);
+  return `<div class="backbone-badge" style="border-color:${meta.color}">
+    <span class="backbone-dot" style="background:${meta.color}"></span>
+    🌐 Backbone (AS${asn}, live via RIPEstat): <strong>${meta.label}</strong> — seen by ${pct}% of monitored internet routers worldwide
+  </div>`;
+}
+
+/* ---------- Live national connectivity signal (real, dynamic, no-auth feed) ----------
+   IODA (Internet Outage Detection and Analysis — api.ioda.inetintel.cc.gatech.edu) is a
+   free, public, no-signup API run by Georgia Tech/CAIDA that tracks how many BGP-routed
+   /24 network blocks are currently visible for a country, sampled every 5 minutes from
+   real internet routing data. It's the same public API IODA's own dashboard uses from
+   the browser. This asks, honestly: "right now, how many of Mozambique's normally-visible
+   network blocks are actually reachable on the global internet?" — a genuine national-level,
+   real-time signal, independent of RIPEstat's per-ISP check above and not gated behind any
+   backend setup. If the count drops sharply relative to its own recent baseline, that's a
+   real sign of a country-wide connectivity event (e.g. a cable cut or a shutdown), not a
+   crowdsourced guess. */
+const IODA_ENTITY_CODE = "MZ";
+const IODA_ENTITY_NAME = "Mozambique";
+let IODA_SIGNAL; // undefined = not yet checked, null = unavailable, object = live data
+async function refreshIodaSignal(){
+  if(typeof fetch !== "function"){ IODA_SIGNAL = null; renderIodaBadge(); return; }
+  try{
+    const untilTs = Math.floor(Date.now()/1000);
+    const fromTs = untilTs - 3*60*60; // last 3 hours, 5-min native step
+    const url = `https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/country/${IODA_ENTITY_CODE}?datasource=bgp&from=${fromTs}&until=${untilTs}`;
+    const res = await fetch(url, { cache:"no-store" });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const json = await res.json();
+    const series = (json && json.data && json.data[0] && json.data[0][0] && json.data[0][0].values) || [];
+    const clean = series.filter(v => typeof v === "number" && v > 0);
+    if(clean.length < 2){ IODA_SIGNAL = null; renderIodaBadge(); return; }
+    const latest = clean[clean.length-1];
+    const baseline = clean.slice(0, -1).reduce((a,b)=>a+b,0) / (clean.length-1);
+    const ratio = baseline > 0 ? latest/baseline : 1;
+    let level;
+    if(ratio >= 0.9) level = "normal";
+    else if(ratio >= 0.5) level = "reduced";
+    else level = "severe";
+    IODA_SIGNAL = { latest, baseline, ratio, level, ts: Date.now() };
+  }catch(e){
+    console.warn("IODA national connectivity signal unavailable", e);
+    IODA_SIGNAL = null;
+  }
+  renderIodaBadge();
+}
+const IODA_META = {
+  normal:  { color:"var(--green)",  label:"Normal — no sign of a national outage" },
+  reduced: { color:"var(--yellow)", label:"Reduced — fewer network blocks visible than usual" },
+  severe:  { color:"var(--red)",    label:"Severe — sharp drop in visible network blocks" }
+};
+function iodaBadgeHtml(){
+  if(IODA_SIGNAL === undefined) return `<div class="backbone-badge backbone-loading">🌍 Checking live national connectivity via IODA (Georgia Tech/CAIDA)…</div>`;
+  if(IODA_SIGNAL === null) return "";
+  const meta = IODA_META[IODA_SIGNAL.level];
+  const pct = Math.round(IODA_SIGNAL.ratio*100);
+  return `<div class="backbone-badge" style="border-color:${meta.color}">
+    <span class="backbone-dot" style="background:${meta.color}"></span>
+    🌍 ${IODA_ENTITY_NAME} national connectivity (live, IODA/CAIDA, public no-auth feed): <strong>${meta.label}</strong> — ${Math.round(IODA_SIGNAL.latest)} routed /24 blocks visible now (${pct}% of the last-3h baseline)
+  </div>`;
+}
+function renderIodaBadge(){
+  const el = document.getElementById("iodaBadge");
+  if(el) el.innerHTML = iodaBadgeHtml();
+}
+
+/* ---------- Crowdsourced quality-of-service data ---------- */
+const CITIES = [
+  {name:"Maputo", lat:-25.9692, lon:32.5732},
+  {name:"Matola", lat:-25.9622, lon:32.4589},
+  {name:"Beira", lat:-19.8436, lon:34.8389},
+  {name:"Nampula", lat:-15.1165, lon:39.2666},
+  {name:"Chimoio", lat:-19.1164, lon:33.4833},
+  {name:"Tete", lat:-16.1564, lon:33.5867},
+  {name:"Quelimane", lat:-17.8786, lon:36.8883},
+  {name:"Pemba", lat:-12.9740, lon:40.5178}
+];
+
+const DAY = 24*60*60*1000;
+const nowTs = Date.now();
+const SEED_REPORTS = [
+  // Illustrative sample data for this fresh, no-real-users-yet site — not real crowdsourced reports.
+  {isp:"Vodacom Moçambique", stars:4, city:"Maputo", comment:"Good LTE speeds in the city centre, drops a bit in the evening.", ts: nowTs-2*DAY},
+  {isp:"Vodacom Moçambique", stars:3, city:"Beira", comment:"Decent coverage, calls sometimes drop near the port.", ts: nowTs-9*DAY},
+  {isp:"Vodacom Moçambique", stars:5, city:"Nampula", comment:"Best coverage of the operators up here.", ts: nowTs-14*DAY},
+  {isp:"Movitel", stars:4, city:"Chimoio", comment:"Solid rural coverage on the road to Manica.", ts: nowTs-4*DAY},
+  {isp:"Movitel", stars:2, city:"Tete", comment:"Frequent slowdowns during the day.", ts: nowTs-20*DAY},
+  {isp:"Tmcel", stars:3, city:"Matola", comment:"Cheap plans but patchy 4G.", ts: nowTs-11*DAY},
+  {isp:"TVCABO Moçambique", stars:4, city:"Maputo", comment:"Fibre is fast when it's working, installation took a while.", ts: nowTs-3*DAY},
+  {isp:"TVCABO Moçambique", stars:3, city:"Beira", comment:"OK speeds, support response is slow.", ts: nowTs-13*DAY}
+];
+
+/* ---------- Crowdsourced switch/signup ("proof of impact") data ---------- */
+const REASON_KEYS = ["reliability","support","price","speed","coverage","other"];
+const SEED_CONVERSIONS = [
+  // Illustrative sample data — not real conversions.
+  {to_isp:"TVCABO Moçambique", from_isp:"Tmcel", reasons:["reliability","speed"], city:"Maputo", comment:"Switched after seeing how many outage complaints Tmcel had here.", ts: nowTs-3*DAY},
+  {to_isp:"Vodacom Moçambique", from_isp:"Movitel", reasons:["coverage","support"], city:"Nampula", comment:"The QoS ratings here matched what I was hearing locally, so I switched.", ts: nowTs-7*DAY},
+  {to_isp:"Movitel", from_isp:null, reasons:["price","coverage"], city:"Chimoio", comment:"First-time subscriber, picked Movitel after checking rural coverage ratings here.", ts: nowTs-15*DAY},
+  {to_isp:"Vodacom Moçambique", from_isp:"Tmcel", reasons:["reliability"], city:"Beira", comment:"Tired of dropped calls.", ts: nowTs-10*DAY},
+  {to_isp:"TVCABO Moçambique", from_isp:null, reasons:["speed"], city:"Matola", comment:"Wanted proper fibre speeds for working from home.", ts: nowTs-18*DAY}
+];
+
+/* ---------- Crowdsourced live-status ("is it up right now?") data ----------
+   Seeded with a mix of live/partial/down per ISP+city, including two
+   unbroken "down" streaks (NetOne/Masvingo, TelOne/Kwekwe) that cross the
+   24h mark so the dark-red "down 24h+" state has something to show. */
+const HOUR = 60*60*1000;
+const SEED_STATUS = [
+  // Illustrative sample data — not real status reports.
+  {isp:"Vodacom Moçambique", city:"Maputo", status:"live", comment:"", ts: nowTs-1*HOUR},
+  {isp:"Vodacom Moçambique", city:"Beira", status:"partial", comment:"Slow during peak hours.", ts: nowTs-3*HOUR},
+  {isp:"Movitel", city:"Tete", status:"down", comment:"Still down.", ts: nowTs-2*HOUR},
+  {isp:"Movitel", city:"Tete", status:"down", comment:"No change overnight.", ts: nowTs-10*HOUR},
+  {isp:"Movitel", city:"Tete", status:"down", comment:"Outage started after the storm.", ts: nowTs-30*HOUR},
+  {isp:"Movitel", city:"Chimoio", status:"live", comment:"", ts: nowTs-2*HOUR},
+  {isp:"Tmcel", city:"Matola", status:"partial", comment:"Data works, calls drop.", ts: nowTs-4*HOUR},
+  {isp:"TVCABO Moçambique", city:"Maputo", status:"live", comment:"", ts: nowTs-20*60*1000}
+];
+
+/* ---------- Bandwidth speed tracker ----------
+   Crowdsourced upload/download speed-test submissions. The ranked section
+   and each ISP's own summary are "24h calibrated": only reports from the
+   last 24 hours count, and — to stop a burst of reports in one hour from
+   skewing the number — they're first averaged inside 30-minute windows,
+   then those window-averages are averaged together. Color is relative to
+   the average across all reporting ISPs: green = well above average,
+   yellow = around average, red = below average (see speedTier()). */
+const SPEED_TIER_META = {
+  high: { color:"var(--green)",  label:"High" },
+  avg:  { color:"var(--yellow)", label:"Average" },
+  low:  { color:"var(--red)",    label:"Below average" }
+};
+const SPEED_BAND = 0.15; // +/-15% around the cross-ISP average download speed
+const SEED_SPEED = [
+  // Illustrative sample data — not real speed test reports.
+  {isp:"Vodacom Moçambique", city:"Maputo", download_mbps:21.4, upload_mbps:7.2, comment:"", ts: nowTs-20*60*1000},
+  {isp:"Vodacom Moçambique", city:"Beira", download_mbps:17.8, upload_mbps:6.0, comment:"", ts: nowTs-3*HOUR},
+  {isp:"Vodacom Moçambique", city:"Maputo", download_mbps:19.5, upload_mbps:6.8, comment:"Older test, outside the 24h window on purpose.", ts: nowTs-26*HOUR},
+  {isp:"Movitel", city:"Chimoio", download_mbps:9.6, upload_mbps:3.5, comment:"", ts: nowTs-2*HOUR},
+  {isp:"Movitel", city:"Tete", download_mbps:6.2, upload_mbps:2.1, comment:"Slower than usual.", ts: nowTs-9*HOUR},
+  {isp:"Tmcel", city:"Matola", download_mbps:8.1, upload_mbps:2.9, comment:"", ts: nowTs-5*HOUR},
+  {isp:"TVCABO Moçambique", city:"Maputo", download_mbps:38.4, upload_mbps:17.2, comment:"", ts: nowTs-1*HOUR},
+  {isp:"TVCABO Moçambique", city:"Beira", download_mbps:29.7, upload_mbps:14.5, comment:"", ts: nowTs-8*HOUR}
+];
+
+/* ---------- Phone number -> ISP suggestion (best-effort, never authoritative) ----------
+   Mozambique's mobile numbers are 9 digits starting with 8 (e.g. 82 123 4567), dialled
+   internationally as +258 82 123 4567, with no leading trunk zero for local dialling.
+   Unlike the Zimbabwe site, this prefix table starts EMPTY: no verified, sourced mapping
+   of numbering blocks to carriers (Vodacom/Movitel/Tmcel) was compiled for this build,
+   so rather than guess, phone-based ISP detection is simply left off for now (an open
+   item) until it can be populated from a verified INCM numbering-plan source. Fixed/cable
+   providers (TVCABO Moçambique) have no phone-number relationship at all regardless.
+   Phone numbers are never stored on a publicly-readable table (see upsertCustomer below
+   and schema.sql) — they only ever go into the write-only `customers` table. */
+const PHONE_ISP_PREFIXES = {};
+function normalizePhone(raw){
+  let d = (raw||"").replace(/[^\d+]/g,"");
+  if(d.indexOf("+258")===0) d = d.slice(4);
+  else if(d.indexOf("258")===0 && d.length>9) d = d.slice(3);
+  return d;
+}
+function isValidPhone(raw){
+  const d = normalizePhone(raw);
+  return /^8\d{8}$/.test(d);
+}
+function detectIspFromPhone(raw){
+  const d = normalizePhone(raw);
+  return PHONE_ISP_PREFIXES[d.slice(0,3)] || null;
+}
+async function upsertCustomer(phone, detectedIsp){
+  if(!phone || !isValidPhone(phone) || !supa) return;
+  try{
+    const { error } = await supa.from("customers").upsert(
+      { phone_number: normalizePhone(phone), country: "258", detected_isp: detectedIsp || null, last_seen: new Date().toISOString() },
+      { onConflict: "phone_number" }
+    );
+    if(error) throw error;
+  }catch(e){
+    console.warn("Could not sync contact number — the report/switch request itself was still saved", e);
+  }
+}
+
+const STORAGE_KEY = "mz_isp_qos_reports_v1";
+const CONV_KEY = "mz_isp_conversions_v1";
+const TRANSLATION_KEY = "mz_isp_translations_v1";
+const STATUS_KEY = "mz_isp_status_reports_v1";
+const SPEED_KEY = "mz_isp_speed_reports_v1";
+
+function loadLocalReports(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){ /* localStorage unavailable, e.g. file:// in some browsers */ }
+  return SEED_REPORTS.slice();
+}
+function saveLocalReports(reports){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(reports)); }catch(e){ /* ignore */ }
+}
+function loadLocalConversions(){
+  try{
+    const raw = localStorage.getItem(CONV_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){}
+  return SEED_CONVERSIONS.slice();
+}
+function saveLocalConversions(list){
+  try{ localStorage.setItem(CONV_KEY, JSON.stringify(list)); }catch(e){}
+}
+function loadLocalTranslations(){
+  try{
+    const raw = localStorage.getItem(TRANSLATION_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){}
+  return [];
+}
+function saveLocalTranslations(list){
+  try{ localStorage.setItem(TRANSLATION_KEY, JSON.stringify(list)); }catch(e){}
+}
+function loadLocalStatus(){
+  try{
+    const raw = localStorage.getItem(STATUS_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){}
+  return SEED_STATUS.slice();
+}
+function saveLocalStatus(list){
+  try{ localStorage.setItem(STATUS_KEY, JSON.stringify(list)); }catch(e){}
+}
+function loadLocalSpeed(){
+  try{
+    const raw = localStorage.getItem(SPEED_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){}
+  return SEED_SPEED.slice();
+}
+function saveLocalSpeed(list){
+  try{ localStorage.setItem(SPEED_KEY, JSON.stringify(list)); }catch(e){}
+}
+
+let REPORTS = loadLocalReports();
+let CONVERSIONS = loadLocalConversions();
+let TRANSLATIONS = loadLocalTranslations();
+let STATUS_REPORTS = loadLocalStatus();
+let SPEED_REPORTS = loadLocalSpeed();
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function nearestCity(lat,lon){
+  let best=null, bestD=Infinity;
+  CITIES.forEach(c=>{
+    const d = haversine(lat,lon,c.lat,c.lon);
+    if(d<bestD){ bestD=d; best=c; }
+  });
+  return { city: best.name, distanceKm: Math.round(bestD) };
+}
+function reportsFor(isp){ return REPORTS.filter(r=>r.isp===isp); }
+function aggregate(isp){
+  const rs = reportsFor(isp);
+  if(rs.length===0) return {avg:null, count:0, byCity:[]};
+  const avg = rs.reduce((a,r)=>a+r.stars,0)/rs.length;
+  const cityMap = {};
+  rs.forEach(r=>{
+    if(!cityMap[r.city]) cityMap[r.city] = {count:0,sum:0};
+    cityMap[r.city].count++;
+    cityMap[r.city].sum += r.stars;
+  });
+  const byCity = Object.entries(cityMap)
+    .map(([city,v])=>({city, count:v.count, avg:v.sum/v.count}))
+    .sort((a,b)=>b.count-a.count);
+  return {avg, count:rs.length, byCity};
+}
+function starString(avg){
+  const full = Math.round(avg);
+  return "★".repeat(full) + "☆".repeat(5-full);
+}
+function relTime(ts){
+  const s = Math.floor((Date.now() - ts)/1000);
+  if(s < 60) return "just now";
+  const m = Math.floor(s/60); if(m < 60) return m+"m ago";
+  const h = Math.floor(m/60); if(h < 24) return h+"h ago";
+  const d = Math.floor(h/24); if(d < 30) return d+"d ago";
+  const mo = Math.floor(d/30); return mo+"mo ago";
+}
+function recentReportsHtml(isp){
+  const rs = reportsFor(isp).slice().sort((a,b)=>b.ts-a.ts).slice(0,4);
+  if(rs.length===0) return `<div class="empty-note" style="margin-bottom:12px;">${tt("no_reports_yet")}</div>`;
+  return `<div class="recent-reports">${rs.map(r=>`
+      <div class="report">
+        <span class="report-stars">${"★".repeat(r.stars)}${"☆".repeat(5-r.stars)}</span>
+        <span class="report-city">${r.city}</span>
+        <span class="report-time">${relTime(r.ts)}</span>
+        ${r.comment ? `<div class="report-comment">“${r.comment}”</div>` : ""}
+      </div>`).join("")}</div>`;
+}
+function conversionsAggregate(){
+  const byIsp = {}; const byReason = {};
+  CONVERSIONS.forEach(c=>{
+    byIsp[c.to_isp] = (byIsp[c.to_isp]||0)+1;
+    (c.reasons||[]).forEach(r=>{ byReason[r] = (byReason[r]||0)+1; });
+  });
+  return { total: CONVERSIONS.length, byIsp, byReason };
+}
+
+function citiesReportedFor(isp){
+  return Array.from(new Set(STATUS_REPORTS.filter(r=>r.isp===isp).map(r=>r.city)));
+}
+function statusFor(isp, city){
+  const rs = STATUS_REPORTS.filter(r=>r.isp===isp && r.city===city).sort((a,b)=>b.ts-a.ts);
+  if(rs.length===0) return null;
+  const latest = rs[0];
+  if(latest.status !== "down"){
+    return { level: latest.status, ts: latest.ts, downSinceTs:null, downForMs:0 };
+  }
+  // Walk back through an unbroken streak of "down" reports to find how
+  // long this city+ISP has been continuously down — that decides
+  // light red (<24h) vs dark red (>=24h), not any single report's age.
+  let streakStart = latest.ts;
+  for(let i=0;i<rs.length;i++){
+    if(rs[i].status === "down"){ streakStart = rs[i].ts; }
+    else break;
+  }
+  const downForMs = Date.now() - streakStart;
+  const level = downForMs >= DAY ? "down-long" : "down";
+  return { level, ts: latest.ts, downSinceTs: streakStart, downForMs };
+}
+function overallStatus(isp){
+  const cities = citiesReportedFor(isp);
+  let worst = null;
+  cities.forEach(city=>{
+    const s = statusFor(isp, city);
+    if(!s) return;
+    if(!worst || STATUS_SEVERITY[s.level] > STATUS_SEVERITY[worst.level]) worst = s;
+  });
+  return worst;
+}
+function formatDuration(ms){
+  const totalHours = Math.floor(ms/HOUR);
+  if(totalHours < 1) return Math.max(1,Math.floor(ms/60000))+"m";
+  if(totalHours < 24) return totalHours+"h";
+  const d = Math.floor(totalHours/24);
+  const h = totalHours % 24;
+  return h ? d+"d "+h+"h" : d+"d";
+}
+function liveStatusHtml(isp){
+  const cities = citiesReportedFor(isp);
+  if(cities.length===0){
+    return `<div class="status-row status-empty"><span class="status-dot status-dot-empty"></span><span class="status-label">${t("no_status_yet")}</span></div>`;
+  }
+  const entries = cities.map(city=>({city, s: statusFor(isp, city)})).filter(e=>e.s);
+  entries.sort((a,b)=> STATUS_SEVERITY[b.s.level]-STATUS_SEVERITY[a.s.level]);
+  const rowsHtml = entries.map(({city,s})=>{
+    const meta = STATUS_META[s.level];
+    let timeText = relTime(s.ts);
+    if(s.level==="down" || s.level==="down-long"){
+      timeText = "down "+formatDuration(s.downForMs)+" · last report "+relTime(s.ts);
+    }
+    return `<div class="status-row">
+      <span class="status-dot" style="background:${meta.color}"></span>
+      <span class="status-city">${city}</span>
+      <span class="status-label">${meta.emoji} ${meta.label}</span>
+      <span class="status-time">${timeText}</span>
+    </div>`;
+  }).join("");
+  return `<div class="status-list">${rowsHtml}</div>`;
+}
+function recentStatusReportsHtml(isp){
+  const rs = STATUS_REPORTS.filter(r=>r.isp===isp).slice().sort((a,b)=>b.ts-a.ts).slice(0,4);
+  if(rs.length===0) return "";
+  return `<div class="recent-reports">${rs.map(r=>{
+    const meta = STATUS_META[r.status] || STATUS_META.live;
+    return `<div class="report">
+      <span class="status-dot" style="background:${meta.color}"></span>
+      <span class="report-city">${r.city}</span>
+      <span class="report-time">${meta.label} · ${relTime(r.ts)}</span>
+      ${r.comment ? `<div class="report-comment">“${r.comment}”</div>` : ""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function speedReportsInWindow(isp, windowMs){
+  const cutoff = Date.now() - (windowMs || DAY);
+  return SPEED_REPORTS.filter(r=>r.isp===isp && r.ts >= cutoff);
+}
+function calibratedSpeed(isp){
+  const rs = speedReportsInWindow(isp, DAY);
+  if(rs.length===0) return null;
+  const HALF_HOUR = 30*60*1000;
+  const now = Date.now();
+  const buckets = {};
+  rs.forEach(r=>{
+    const idx = Math.floor((now - r.ts)/HALF_HOUR);
+    if(!buckets[idx]) buckets[idx] = { downSum:0, upSum:0, count:0 };
+    buckets[idx].downSum += r.download_mbps;
+    buckets[idx].upSum += r.upload_mbps;
+    buckets[idx].count++;
+  });
+  const bucketList = Object.values(buckets);
+  const downloadMbps = bucketList.reduce((a,b)=>a+(b.downSum/b.count),0)/bucketList.length;
+  const uploadMbps = bucketList.reduce((a,b)=>a+(b.upSum/b.count),0)/bucketList.length;
+  return { downloadMbps, uploadMbps, buckets: bucketList.length, reportCount: rs.length };
+}
+function speedAggregateAll(){
+  const entries = DATA.map(d=>({isp:d.name, calib: calibratedSpeed(d.name)})).filter(e=>e.calib);
+  const overallAvgDown = entries.length ? entries.reduce((a,e)=>a+e.calib.downloadMbps,0)/entries.length : 0;
+  const overallAvgUp = entries.length ? entries.reduce((a,e)=>a+e.calib.uploadMbps,0)/entries.length : 0;
+  entries.sort((a,b)=>b.calib.downloadMbps - a.calib.downloadMbps);
+  return { entries, overallAvgDown, overallAvgUp };
+}
+function speedTier(downloadMbps, overallAvgDown){
+  if(!overallAvgDown || overallAvgDown<=0) return "avg";
+  if(downloadMbps >= overallAvgDown*(1+SPEED_BAND)) return "high";
+  if(downloadMbps < overallAvgDown*(1-SPEED_BAND)) return "low";
+  return "avg";
+}
+/* ---------- National bandwidth benchmark (live, via Cloudflare Radar) — NOT enabled on this site ----------
+   The Zimbabwe site (zwispqosd) calls a Supabase Edge Function that's hardcoded server-side to
+   proxy only Zimbabwe's Cloudflare Radar summary — it can't serve Mozambique's numbers, and
+   that edge function is a known, separately-tracked issue even for Zimbabwe. Rather than build and
+   deploy a second, Mozambique-specific edge function sight-unseen, this feature is simply never
+   invoked here (see the bottom of this file — refreshRadarBenchmark() is not called) and stays
+   dormant/no-op: RADAR_BENCHMARK is left undefined so radarBenchmarkHtml() always renders nothing.
+   Revisit if/when a real, per-country Radar proxy is deployed. */
+let RADAR_BENCHMARK; // undefined = not yet checked, null = unavailable, object = live data
+async function refreshRadarBenchmark(){
+  if(!BACKEND_CONFIGURED || typeof fetch !== "function"){ RADAR_BENCHMARK = null; renderSpeedSection(); return; }
+  try{
+    const res = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/radar-bandwidth`, {
+      headers: { apikey: SUPABASE_CONFIG.anonKey, Authorization: "Bearer "+SUPABASE_CONFIG.anonKey }
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const json = await res.json();
+    RADAR_BENCHMARK = (json && json.configured && !json.error) ? json : null;
+  }catch(e){
+    console.warn("Cloudflare Radar national benchmark unavailable", e);
+    RADAR_BENCHMARK = null;
+  }
+  renderSpeedSection();
+}
+function radarBenchmarkHtml(){
+  if(!RADAR_BENCHMARK) return "";
+  const r = RADAR_BENCHMARK;
+  return `<div class="backbone-badge" style="border-color:var(--blue,#3b82f6)">
+    <span class="backbone-dot" style="background:var(--blue,#3b82f6)"></span>
+    🌍 Mozambique national reference (live, Cloudflare Radar${r.sampleDate ? ", "+r.sampleDate : ""}): <strong>${Number(r.downloadMbps).toFixed(1)} Mbps ↓ · ${Number(r.uploadMbps).toFixed(1)} Mbps ↑</strong> (p50, all networks) — a country-wide benchmark to compare the crowdsourced per-ISP figures below against.
+  </div>`;
+}
+function recentSpeedReportsHtml(isp){
+  const rs = SPEED_REPORTS.filter(r=>r.isp===isp).slice().sort((a,b)=>b.ts-a.ts).slice(0,4);
+  if(rs.length===0) return `<div class="empty-note" style="margin-bottom:12px;">${t("no_speed_reports_yet")}</div>`;
+  return `<div class="recent-reports">${rs.map(r=>`
+      <div class="report">
+        <span class="report-city">${r.city}</span>
+        <span class="report-stars" style="color:var(--accent2);">${r.download_mbps.toFixed(1)}↓ / ${r.upload_mbps.toFixed(1)}↑ Mbps</span>
+        <span class="report-time">${relTime(r.ts)}</span>
+        ${r.comment ? `<div class="report-comment">“${r.comment}”</div>` : ""}
+      </div>`).join("")}</div>`;
+}
+
+/* ---------- Backend sync (Supabase) ---------- */
+function setBanner(mode, text){
+  const el = document.getElementById("backendBanner");
+  el.className = "backend-banner mode-"+mode;
+  el.textContent = text;
+}
+function rebuildOverrides(){
+  translationOverrides = {};
+  TRANSLATIONS.filter(x=>x.status==="approved").forEach(x=>{
+    if(!translationOverrides[x.lang]) translationOverrides[x.lang] = {};
+    translationOverrides[x.lang][x.string_key] = x.suggested_text;
+  });
+}
+
+async function initBackend(){
+  if(!supa){
+    setBanner("local", t("banner_local"));
+    rebuildOverrides();
+    renderAll();
+    return;
+  }
+  setBanner("connecting", t("banner_connecting"));
+  try{
+    const [qosRes, convRes, trRes, statusRes, speedRes, refRes] = await Promise.all([
+      supa.from("qos_reports").select("isp,stars,city,comment,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(1000),
+      supa.from("conversions").select("to_isp,from_isp,reasons,city,comment,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(500),
+      supa.from("translations").select("id,lang,string_key,suggested_text,source_note,endorsements,status,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(500),
+      supa.from("status_reports").select("isp,city,status,comment,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(1000),
+      supa.from("speed_reports").select("isp,city,download_mbps,upload_mbps,comment,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(1000),
+      supa.from("referral_clicks").select("isp,context,created_at").eq("site", SITE_ID).order("created_at",{ascending:false}).limit(2000)
+    ]);
+    if(qosRes.error) throw qosRes.error;
+    if(convRes.error) throw convRes.error;
+    if(trRes.error) throw trRes.error;
+    if(statusRes.error) throw statusRes.error;
+    if(speedRes.error) throw speedRes.error;
+    if(refRes.error) throw refRes.error;
+
+    if(qosRes.data && qosRes.data.length){
+      REPORTS = qosRes.data.map(r=>({isp:r.isp, stars:r.stars, city:r.city||"Unknown", comment:r.comment||"", ts:new Date(r.created_at).getTime()}));
+    }
+    if(convRes.data){
+      CONVERSIONS = convRes.data.map(c=>({to_isp:c.to_isp, from_isp:c.from_isp, reasons:c.reasons||[], city:c.city||"Unknown", comment:c.comment||"", ts:new Date(c.created_at).getTime()}));
+    }
+    if(trRes.data){
+      TRANSLATIONS = trRes.data.map(x=>({id:x.id, lang:x.lang, string_key:x.string_key, suggested_text:x.suggested_text, source_note:x.source_note, endorsements:x.endorsements, status:x.status, ts:new Date(x.created_at).getTime()}));
+    }
+    if(statusRes.data && statusRes.data.length){
+      STATUS_REPORTS = statusRes.data.map(r=>({isp:r.isp, city:r.city||"Unknown", status:r.status, comment:r.comment||"", ts:new Date(r.created_at).getTime()}));
+    }
+    if(speedRes.data && speedRes.data.length){
+      SPEED_REPORTS = speedRes.data.map(r=>({isp:r.isp, city:r.city||"Unknown", download_mbps:r.download_mbps, upload_mbps:r.upload_mbps, comment:r.comment||"", ts:new Date(r.created_at).getTime()}));
+    }
+    if(refRes.data){
+      REFERRAL_CLICKS = refRes.data.map(r=>({isp:r.isp, context:r.context||"detail", ts:new Date(r.created_at).getTime()}));
+    }
+    rebuildOverrides();
+    setBanner("live", t("banner_live"));
+    renderAll();
+  }catch(e){
+    console.warn("Supabase sync failed", e);
+    rebuildOverrides();
+    setBanner("error", t("banner_error"));
+    renderAll();
+  }
+}
+
+async function submitReport(report){
+  if(!SpamGuard.check("rating", report.comment).ok) return;
+  report.comment = SpamGuard.sanitizeText(report.comment, 500);
+  SpamGuard.pass();
+  REPORTS.push(report);
+  saveLocalReports(REPORTS);
+  openRows.add(report.isp);
+  renderAll();
+  if(supa){
+    try{
+      const { error } = await supa.from("qos_reports").insert([{
+        site: SITE_ID,
+        isp: report.isp, stars: report.stars, city: report.city, comment: report.comment,
+        device_id: SpamGuard.deviceId()
+      }]);
+      if(error) throw error;
+    }catch(e){
+      console.warn("Could not sync rating to shared backend — kept locally only", e);
+      setBanner("error", "🔴 Rating saved locally, but couldn't reach the shared backend to sync it");
+    }
+  }
+}
+
+async function submitFeedback(){
+  const btn = document.getElementById("fbSubmit");
+  const status = document.getElementById("fbStatus");
+  if(!supa){
+    status.textContent = "Feedback needs the shared backend to be configured — nothing to send yet.";
+    return;
+  }
+  const rawComment = document.getElementById("fbComment").value || "";
+  const guard = SpamGuard.check("feedback", rawComment);
+  if(!guard.ok) return;
+  const payload = {
+    site: SITE_ID,
+    location_correct: document.getElementById("fbLocation").value,
+    usability: document.getElementById("fbUsability").value,
+    language_ok: document.getElementById("fbLanguage").value,
+    comment: SpamGuard.sanitizeText(rawComment, 1000),
+    city: SpamGuard.sanitizeText(document.getElementById("fbCity").value, 60),
+    device_id: SpamGuard.deviceId()
+  };
+  SpamGuard.pass();
+  btn.disabled = true;
+  status.textContent = "Sending…";
+  try{
+    const { error } = await supa.from("tester_feedback").insert([payload]);
+    if(error) throw error;
+    status.textContent = "✅ Thanks — feedback sent.";
+    document.getElementById("fbComment").value = "";
+    document.getElementById("fbCity").value = "";
+  }catch(e){
+    console.warn("Could not send feedback", e);
+    status.textContent = "🔴 Couldn't send feedback — check your connection and try again.";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+async function submitStatus(entry){
+  if(!SpamGuard.check("status", entry.comment).ok) return;
+  entry.comment = SpamGuard.sanitizeText(entry.comment, 500);
+  SpamGuard.pass();
+  STATUS_REPORTS.push(entry);
+  saveLocalStatus(STATUS_REPORTS);
+  openRows.add(entry.isp);
+  renderAll();
+  if(supa){
+    try{
+      const { error } = await supa.from("status_reports").insert([{
+        site: SITE_ID,
+        isp: entry.isp, city: entry.city, status: entry.status, comment: entry.comment,
+        device_id: SpamGuard.deviceId()
+      }]);
+      if(error) throw error;
+    }catch(e){
+      console.warn("Could not sync status report to shared backend — kept locally only", e);
+      setBanner("error", "🔴 Status report saved locally, but couldn't reach the shared backend to sync it");
+    }
+  }
+}
+
+async function submitSpeed(entry){
+  if(!SpamGuard.check("speed", entry.comment).ok) return;
+  entry.comment = SpamGuard.sanitizeText(entry.comment, 500);
+  SpamGuard.pass();
+  SPEED_REPORTS.push(entry);
+  saveLocalSpeed(SPEED_REPORTS);
+  openRows.add(entry.isp);
+  renderAll();
+  if(supa){
+    const baseRow = {
+      site: SITE_ID,
+      isp: entry.isp, city: entry.city, download_mbps: entry.download_mbps, upload_mbps: entry.upload_mbps, comment: entry.comment,
+      device_id: SpamGuard.deviceId()
+    };
+    // Richer columns from the built-in automatic speed test (v1.1.0+). If the
+    // speed_reports table hasn't been migrated to add these columns yet, the first
+    // insert below fails and we retry with just baseRow — so this keeps working
+    // before AND after the migration in matokipedo-isp-tracker-qc's SKILL.md is run.
+    const richRow = {
+      ...baseRow,
+      test_method: entry.test_method || "manual",
+      latency_idle_ms: entry.latency_idle_ms ?? null,
+      latency_download_ms: entry.latency_download_ms ?? null,
+      latency_upload_ms: entry.latency_upload_ms ?? null,
+      jitter_download_ms: entry.jitter_download_ms ?? null,
+      jitter_upload_ms: entry.jitter_upload_ms ?? null,
+      packet_loss_pct: entry.packet_loss_pct ?? null,
+      connection_type: entry.connection_type ?? null,
+      device_type: entry.device_type ?? null
+    };
+    try{
+      const { error } = await supa.from("speed_reports").insert([richRow]);
+      if(error) throw error;
+    }catch(e){
+      try{
+        const { error: error2 } = await supa.from("speed_reports").insert([baseRow]);
+        if(error2) throw error2;
+        console.warn("Synced with base columns only — run the speed_reports migration in matokipedo-isp-tracker-qc's SKILL.md to store the richer auto-test metrics too.", e);
+      }catch(e2){
+        console.warn("Could not sync speed test to shared backend — kept locally only", e2);
+        setBanner("error", "🔴 Speed test saved locally, but couldn't reach the shared backend to sync it");
+      }
+    }
+  }
+}
+
+async function submitConversion(entry){
+  if(!SpamGuard.check("conversion", entry.comment).ok) return;
+  entry.comment = SpamGuard.sanitizeText(entry.comment, 500);
+  SpamGuard.pass();
+  CONVERSIONS.push(entry);
+  saveLocalConversions(CONVERSIONS);
+  renderAll();
+  if(supa){
+    try{
+      const { error } = await supa.from("conversions").insert([{
+        site: SITE_ID,
+        to_isp: entry.to_isp, from_isp: entry.from_isp, reasons: entry.reasons, city: entry.city, comment: entry.comment,
+        device_id: SpamGuard.deviceId()
+      }]);
+      if(error) throw error;
+    }catch(e){
+      console.warn("Could not sync signup/switch report to shared backend — kept locally only", e);
+    }
+  }
+}
+
+async function submitTranslation(sugg){
+  if(!SpamGuard.check("translation", (sugg.suggested_text||"") + " " + (sugg.source_note||"")).ok) return;
+  sugg.suggested_text = SpamGuard.sanitizeText(sugg.suggested_text, 500);
+  sugg.source_note = SpamGuard.sanitizeText(sugg.source_note, 200);
+  SpamGuard.pass();
+  sugg.id = sugg.id || ("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+  sugg.endorsements = 0; sugg.status = "pending"; sugg.ts = Date.now();
+  TRANSLATIONS.push(sugg);
+  saveLocalTranslations(TRANSLATIONS);
+  renderTranslatePanel();
+  if(supa){
+    try{
+      const { data, error } = await supa.from("translations").insert([{
+        site: SITE_ID,
+        lang: sugg.lang, string_key: sugg.string_key, suggested_text: sugg.suggested_text, source_note: sugg.source_note,
+        device_id: SpamGuard.deviceId()
+      }]).select();
+      if(error) throw error;
+      if(data && data[0]){ sugg.id = data[0].id; saveLocalTranslations(TRANSLATIONS); }
+    }catch(e){ console.warn("Translation suggestion sync failed", e); }
+  }
+}
+
+async function endorseTranslation(id){
+  const item = TRANSLATIONS.find(x=>String(x.id)===String(id));
+  if(!item) return;
+  item.endorsements = (item.endorsements||0)+1;
+  if(item.endorsements>=2) item.status = "approved";
+  saveLocalTranslations(TRANSLATIONS);
+  rebuildOverrides();
+  renderTranslatePanel();
+  renderAll();
+  if(supa && typeof item.id === "number"){
+    try{
+      const { error } = await supa.rpc("endorse_translation", { translation_id: item.id });
+      if(error) throw error;
+    }catch(e){ console.warn("Endorsement sync failed", e); }
+  }
+}
+
+/* ---------- Rendering ---------- */
+let state = { filter: "all", query: "" };
+let openRows = new Set();
+
+function fmt(n){
+  if(n===null || n===undefined) return "—";
+  return n.toLocaleString("en-US");
+}
+
+function applyStaticTranslations(){
+  document.getElementById("langLabelText").textContent = t("lang_label");
+  document.getElementById("translateHelpLabel").textContent = t("translate_help");
+  document.getElementById("search").placeholder = t("search_placeholder");
+  document.getElementById("filterAllLabel").textContent = t("filter_all");
+  document.getElementById("filterMobileLabel").textContent = t("filter_mobile");
+  document.getElementById("filterFixedLabel").textContent = t("filter_fixed");
+  document.getElementById("legendLiveLabel").textContent = t("status_live");
+  document.getElementById("legendPartialLabel").textContent = t("status_partial");
+  document.getElementById("legendDownLabel").textContent = t("status_down");
+  document.getElementById("legendDownLongLabel").textContent = t("status_down_long");
+  document.getElementById("speedTitleText").textContent = t("speed_ranking_title");
+  document.getElementById("speedSubText").textContent = t("speed_ranking_sub");
+  document.getElementById("impactTitleText").textContent = t("impact_title");
+  document.getElementById("impactSubText").textContent = t("impact_sub");
+  document.getElementById("impactNewIspLabel").textContent = t("impact_new_isp");
+  document.getElementById("impactPrevIspLabel").textContent = t("impact_prev_isp");
+  document.getElementById("phoneSwitchLabel").textContent = t("phone_label_switch");
+  document.getElementById("phoneSwitchConsent").textContent = t("phone_consent");
+  document.getElementById("impactPhone").placeholder = t("phone_placeholder_switch");
+  document.getElementById("impactReasonsLabel").textContent = t("impact_reasons");
+  document.getElementById("impactLocLabel").textContent = t("btn_use_location");
+  document.getElementById("impactComment").placeholder = t("comment_placeholder");
+  document.getElementById("impactSubmitLabel").textContent = t("btn_submit_story");
+  document.getElementById("resetQos").textContent = t("reset_link");
+
+  document.getElementById("impactReasonTags").innerHTML = REASON_KEYS.map(k=>
+    `<label class="reason-tag"><input type="checkbox" value="${k}" data-role="reasonCheck"> <span>${t("reason_"+k)}</span></label>`
+  ).join("");
+
+  const impactCitySelect = document.getElementById("impactCitySelect");
+  impactCitySelect.innerHTML = `<option value="">${t("city_manual")}</option>` + CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("");
+
+  document.getElementById("simpleModeLabel").textContent = document.body.classList.contains("simple-mode") ? t("simple_mode_on") : t("simple_mode_off");
+
+  const simpleNav = document.getElementById("simpleNav");
+  const simpleItems = [
+    { filter:"all", icon:"📶", label:t("simple_nav_reset") },
+    { filter:"Mobile", icon:"📱", label:t("simple_nav_mobile") },
+    { filter:"Fixed/Wireless", icon:"🏠", label:t("simple_nav_fixed") }
+  ];
+  simpleNav.innerHTML = simpleItems.map(it=>`<button type="button" class="simple-btn" data-simple-filter="${it.filter}" aria-pressed="${state.filter===it.filter}"><span class="simple-icon" aria-hidden="true">${it.icon}</span><span>${it.label}</span></button>`).join("");
+  simpleNav.querySelectorAll("[data-simple-filter]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      state.filter = btn.getAttribute("data-simple-filter");
+      document.querySelectorAll(".chip[data-filter]").forEach(c=>{
+        const active = c.getAttribute("data-filter")===state.filter;
+        c.classList.toggle("active", active);
+      });
+      renderAll();
+    });
+  });
+
+  document.querySelectorAll(".lang-chip").forEach(chip=>{
+    chip.classList.toggle("active", chip.getAttribute("data-lang")===currentLang);
+  });
+}
+
+function renderStats(){
+  const confirmed = DATA.filter(d=>d.subscribers!==null).reduce((a,d)=>a+d.subscribers,0);
+  const withData = DATA.filter(d=>d.subscribers!==null).length;
+  const mobile = DATA.filter(d=>d.type==="Mobile").length;
+  const fixed = DATA.filter(d=>d.type==="Fixed/Wireless").length;
+  const totalReports = REPORTS.length;
+  const overallAvg = totalReports ? (REPORTS.reduce((a,r)=>a+r.stars,0)/totalReports).toFixed(1) : "—";
+  const stats = [
+    {num: DATA.length, lbl: t("stat_isps")},
+    {num: fmt(confirmed), lbl:"combined confirmed subscribers"},
+    {num: withData+" / "+DATA.length, lbl:"providers with public subscriber counts"},
+    {num: mobile+" mobile · "+fixed+" fixed/wireless", lbl:"provider mix"},
+    {num: totalReports, lbl: t("stat_reports")},
+    {num: overallAvg+"★", lbl:"avg QoS across all reports"}
+  ];
+  document.getElementById("stats").innerHTML = stats.map(s=>
+    `<div class="stat"><div class="num">${s.num}</div><div class="lbl">${s.lbl}</div></div>`
+  ).join("");
+}
+
+/* ---------- Referral / affiliate links (monetization) ----------
+   Off by default: fill in a real referral URL + tracking code per ISP here
+   once you've actually struck an agreement with them. Until an ISP is added
+   to this map, no "Sign up" button appears for it — the site never implies
+   a paid relationship that doesn't exist. Clicks are logged locally and
+   (if configured) to Supabase's referral_clicks table regardless of whether
+   a monetary deal is in place yet, so you have real click-through numbers
+   to show a prospective ISP partner during the sales conversation itself. */
+const ISP_REFERRAL = {
+  // "Vodacom Moçambique": { url: "https://www.vodacom.co.mz/", code: "MZISPTRACKER" },
+};
+const REFERRAL_KEY = "mz_isp_referral_clicks_v1";
+function loadLocalReferrals(){
+  try{ const raw = localStorage.getItem(REFERRAL_KEY); return raw ? JSON.parse(raw) : []; }
+  catch(e){ return []; }
+}
+function saveLocalReferrals(list){
+  try{ localStorage.setItem(REFERRAL_KEY, JSON.stringify(list)); }catch(e){}
+}
+let REFERRAL_CLICKS = loadLocalReferrals();
+function referralUrlFor(isp, context){
+  const cfg = ISP_REFERRAL[isp];
+  if(!cfg) return null;
+  try{
+    const url = new URL(cfg.url);
+    if(cfg.code) url.searchParams.set("ref", cfg.code);
+    url.searchParams.set("utm_source", "mz-isp-tracker");
+    url.searchParams.set("utm_medium", "referral");
+    url.searchParams.set("utm_campaign", context || "detail");
+    return url.toString();
+  }catch(e){ return cfg.url; }
+}
+function referralHtml(isp, context){
+  const cfg = ISP_REFERRAL[isp];
+  if(!cfg) return "";
+  return `<div class="referral-cta">
+    <a class="btn small primary" data-role="referralLink" data-isp="${isp}" data-context="${context||'detail'}" href="${referralUrlFor(isp, context)}" target="_blank" rel="noopener sponsored">🔗 Sign up with ${isp}</a>
+    <span class="referral-disclosure">Sponsored link — we may earn a referral fee if you sign up</span>
+  </div>`;
+}
+async function logReferralClick(isp, context){
+  const entry = { isp, context: context||"detail", ts: Date.now() };
+  REFERRAL_CLICKS.push(entry);
+  saveLocalReferrals(REFERRAL_CLICKS);
+  if(supa){
+    try{
+      const { error } = await supa.from("referral_clicks").insert([{ site: SITE_ID, isp: entry.isp, context: entry.context }]);
+      if(error) throw error;
+    }catch(e){ console.warn("Could not sync referral click to shared backend", e); }
+  }
+}
+
+/* ---------- ISP-facing benchmarking export (sellable insights product) ----------
+   Packages data that already exists elsewhere in this app — QoS ratings,
+   live-status reliability, bandwidth tier, backbone visibility, and the
+   switch/signup flow — into a report shaped for a different reader than the
+   public site: an ISP's own team deciding whether independent, crowdsourced
+   perception data is worth paying to see regularly. Generating this report
+   is free; the monetizable product is a recurring, licensed version of it
+   (see README → "Monetization" for how that's meant to work). This in-app
+   export is the sample/teaser you'd show a prospective ISP customer. */
+function statusReliabilityPct(isp, windowMs){
+  const cutoff = Date.now() - (windowMs || 30*DAY);
+  const rs = STATUS_REPORTS.filter(r=>r.isp===isp && r.ts >= cutoff);
+  if(rs.length===0) return null;
+  const liveCount = rs.filter(r=>r.status==="live").length;
+  return { pct: (liveCount/rs.length)*100, sampleSize: rs.length };
+}
+function conversionFlowFor(isp){
+  const gained = CONVERSIONS.filter(c=>c.to_isp===isp);
+  const lost = CONVERSIONS.filter(c=>c.from_isp===isp);
+  const reasonCounts = {};
+  gained.forEach(c=>(c.reasons||[]).forEach(r=>{ reasonCounts[r] = (reasonCounts[r]||0)+1; }));
+  const topReasons = Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([r,n])=>`${r} (${n})`);
+  return { gained: gained.length, lost: lost.length, net: gained.length - lost.length, topReasons };
+}
+function competitivePositionTable(){
+  return DATA.map(d=>{
+    const qos = aggregate(d.name);
+    const speedCalib = calibratedSpeed(d.name);
+    const rel = statusReliabilityPct(d.name);
+    return {
+      name: d.name,
+      qosAvg: qos.count ? qos.avg : null,
+      qosCount: qos.count,
+      downloadMbps: speedCalib ? speedCalib.downloadMbps : null,
+      reliabilityPct: rel ? rel.pct : null
+    };
+  }).sort((a,b)=>(b.qosAvg||0)-(a.qosAvg||0));
+}
+function buildBenchmarkReportHtml(ispName){
+  const d = DATA.find(x=>x.name===ispName);
+  if(!d) return null;
+  const qos = aggregate(ispName);
+  const rel = statusReliabilityPct(ispName);
+  const speedAgg = speedAggregateAll();
+  const speedCalib = calibratedSpeed(ispName);
+  const speedTierVal = speedCalib ? speedTier(speedCalib.downloadMbps, speedAgg.overallAvgDown) : null;
+  const backbone = BACKBONE[ispName];
+  const flow = conversionFlowFor(ispName);
+  const table = competitivePositionTable();
+  const rankPos = table.findIndex(r=>r.name===ispName) + 1;
+  const refClicks = REFERRAL_CLICKS.filter(r=>r.isp===ispName).length;
+
+  const rowsHtml = table.map((r,i)=>`
+    <tr style="${r.name===ispName?'background:#fffbe6;font-weight:600;':''}">
+      <td>${i+1}</td><td>${r.name}</td>
+      <td>${r.qosAvg!==null ? r.qosAvg.toFixed(1)+"★ ("+r.qosCount+")" : "—"}</td>
+      <td>${r.downloadMbps!==null ? r.downloadMbps.toFixed(1)+" Mbps" : "—"}</td>
+      <td>${r.reliabilityPct!==null ? r.reliabilityPct.toFixed(0)+"%" : "—"}</td>
+    </tr>`).join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Benchmarking Report — ${ispName}</title>
+  <style>
+    body{font-family:Georgia,'Times New Roman',serif;max-width:800px;margin:40px auto;color:#1a1a1a;line-height:1.5;padding:0 16px;}
+    h1{font-size:26px;margin-bottom:4px;} h2{font-size:18px;margin-top:32px;border-bottom:2px solid #222;padding-bottom:4px;}
+    .cover-sub{color:#555;margin-bottom:24px;} .stat-grid{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0;}
+    .stat-card{border:1px solid #ccc;border-radius:8px;padding:12px 16px;min-width:140px;}
+    .stat-num{font-size:22px;font-weight:700;} .stat-lbl{font-size:12px;color:#666;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;} td,th{border:1px solid #ccc;padding:6px 8px;font-size:13px;text-align:left;}
+    .cta{margin-top:36px;padding:16px;border:2px dashed #888;border-radius:8px;background:#fafafa;}
+    .disclosure{font-size:11px;color:#888;margin-top:28px;}
+    @media print{ .no-print{display:none;} }
+  </style></head><body>
+    <button class="no-print" onclick="window.print()" style="float:right;">🖨️ Print / Save as PDF</button>
+    <h1>Independent ISP Benchmarking Report</h1>
+    <div class="cover-sub">Prepared for <strong>${ispName}</strong> — generated ${new Date().toLocaleDateString()} from live, crowdsourced data on the Mozambique ISP Tracker</div>
+
+    <h2>Executive summary</h2>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num">#${rankPos} of ${table.length}</div><div class="stat-lbl">Rank by QoS rating</div></div>
+      <div class="stat-card"><div class="stat-num">${qos.count ? qos.avg.toFixed(1)+"★" : "—"}</div><div class="stat-lbl">Avg QoS (${qos.count} ratings)</div></div>
+      <div class="stat-card"><div class="stat-num">${rel ? rel.pct.toFixed(0)+"%" : "—"}</div><div class="stat-lbl">Reported "live" (30d, n=${rel?rel.sampleSize:0})</div></div>
+      <div class="stat-card"><div class="stat-num">${speedCalib ? speedCalib.downloadMbps.toFixed(1)+" Mbps" : "—"}</div><div class="stat-lbl">24h avg download${speedTierVal?" · "+SPEED_TIER_META[speedTierVal].label:""}</div></div>
+      <div class="stat-card"><div class="stat-num">${flow.net>=0?"+":""}${flow.net}</div><div class="stat-lbl">Net switches (${flow.gained} gained / ${flow.lost} lost)</div></div>
+    </div>
+    ${backbone ? `<p>🌐 Backbone visibility (live, RIPEstat): <strong>${BACKBONE_META[backbone.level].label}</strong> — seen by ${Math.round(backbone.ratio*100)}% of monitored routers worldwide.</p>` : ""}
+
+    <h2>Why customers switched to ${ispName}</h2>
+    <p>${flow.topReasons.length ? "Top cited reasons: " + flow.topReasons.join(", ") + "." : "Not enough switch reports yet to identify a pattern."}</p>
+    ${refClicks ? `<p>${refClicks} referral click-through${refClicks===1?'':'s'} recorded from this site.</p>` : ""}
+
+    <h2>Competitive position — all tracked ISPs</h2>
+    <table><thead><tr><th>#</th><th>ISP</th><th>QoS</th><th>Download (24h)</th><th>Live reliability (30d)</th></tr></thead>
+    <tbody>${rowsHtml}</tbody></table>
+
+    <h2>Methodology</h2>
+    <p style="font-size:13px;color:#444;">QoS is a simple average of 1–5★ crowdsourced ratings. Live reliability is the
+    share of status reports marked "live" (vs. partial/down) over the trailing 30 days — a self-reported proxy, not a
+    monitored SLA. Bandwidth is a 24-hour, half-hour-bucketed average of crowdsourced speed tests (see the Bandwidth
+    section of the live site for the full calibration method). Backbone visibility, where shown, is a live BGP-routing
+    signal from RIPEstat, not a last-mile quality measure. None of this is independently verified or standardized —
+    treat it as directional public sentiment, not a certified benchmark.</p>
+
+    <div class="cta">
+      <strong>This is a free sample.</strong> A licensed subscription gets ${ispName} a monthly refreshed report,
+      historical trend charts, raw anonymized comment access, and priority flagging of emerging complaint clusters —
+      reach out via the contact details on the live site to discuss.
+    </div>
+    <div class="disclosure">Generated automatically from publicly crowdsourced data at the Mozambique ISP Tracker. Not
+    affiliated with, endorsed by, or verified against ${ispName}'s own internal metrics.</div>
+  </body></html>`;
+}
+function openBenchmarkReport(ispName){
+  const html = buildBenchmarkReportHtml(ispName);
+  if(!html) return;
+  const win = window.open("", "_blank");
+  if(!win){ alert("Please allow pop-ups to view the benchmarking report, or use your browser's print-to-PDF on this page instead."); return; }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+function renderList(){
+  const q = state.query.trim().toLowerCase();
+  let rows = DATA.filter(d=>{
+    if(state.filter!=="all" && d.type!==state.filter) return false;
+    if(q && !d.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  rows = rows.slice().sort((a,b)=>{
+    if(a.subscribers===null && b.subscribers===null) return 0;
+    if(a.subscribers===null) return 1;
+    if(b.subscribers===null) return -1;
+    return b.subscribers - a.subscribers;
+  });
+
+  const list = document.getElementById("list");
+  if(rows.length===0){
+    list.innerHTML = `<div class="row" style="cursor:default;color:var(--muted);">No providers match your search/filter.</div>`;
+    return;
+  }
+
+  const convAgg = conversionsAggregate();
+  const speedAgg = speedAggregateAll();
+
+  list.innerHTML = rows.map((d,i)=>{
+    const rank = d.subscribers!==null ? (i+1) : "–";
+    const qos = aggregate(d.name);
+    const isOpen = openRows.has(d.name);
+    const cityBars = qos.byCity.length ? `<div class="city-bars">${qos.byCity.map(c=>{
+        const pct = Math.max(6, Math.round((c.count/qos.count)*100));
+        return `<div class="city-bar-row"><span class="city-name">${c.city}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="city-meta">${c.avg.toFixed(1)}★ · ${c.count}</span></div>`;
+      }).join("")}</div>` : "";
+    const convCount = convAgg.byIsp[d.name] || 0;
+    const impactBadge = convCount ? `<div class="impact-badge">${t("impact_badge").replace("{n}", convCount)}</div>` : "";
+    const ov = overallStatus(d.name);
+    const rowStatusDot = ov
+      ? `<span class="status-dot" style="background:${STATUS_META[ov.level].color}" title="${STATUS_META[ov.level].label}"></span>`
+      : `<span class="status-dot status-dot-empty" title="No status reports yet"></span>`;
+    const speedCalib = calibratedSpeed(d.name);
+    const speedTierVal = speedCalib ? speedTier(speedCalib.downloadMbps, speedAgg.overallAvgDown) : null;
+    const speedTierMeta = speedTierVal ? SPEED_TIER_META[speedTierVal] : null;
+    const speedSummaryHtml = speedCalib
+      ? `<span style="color:${speedTierMeta.color};font-weight:600;">${speedCalib.downloadMbps.toFixed(1)} Mbps ↓ / ${speedCalib.uploadMbps.toFixed(1)} Mbps ↑</span> <span class="muted">(${speedTierMeta.label} · ${speedCalib.reportCount} report${speedCalib.reportCount===1?'':'s'} in ${speedCalib.buckets} 30-min window${speedCalib.buckets===1?'':'s'})</span>`
+      : `<span class="muted">${t("no_speed_data")}</span>`;
+    return `
+    <div class="row ${isOpen?'open':''}" data-name="${d.name}">
+      <div class="row-top" data-role="toggle">
+        <div class="rank">${rank}</div>
+        <div class="name-wrap">
+          <div class="name">${rowStatusDot}${d.name}</div>
+          <div class="type">${d.type}</div>
+        </div>
+        <div class="subs">${fmt(d.subscribers)}<small>${d.subLabel}</small></div>
+        <div class="qos-badge ${qos.count?'':'empty'}">${qos.count ? starString(Math.round(qos.avg))+" "+qos.avg.toFixed(1)+" ("+qos.count+")" : t("no_ratings_yet")}</div>
+        <div class="pill ${d.status}" data-role="pill">${STATUS_LABEL[d.status]}</div>
+        <div class="caret">▶</div>
+      </div>
+      <div class="detail">
+        <div class="detail-inner">
+          ${d.note}
+          <span class="src">Source: ${d.source}</span>
+          ${impactBadge}
+          ${referralHtml(d.name, "detail")}
+          <div class="qos-actions" style="margin-top:6px;">
+            <button class="btn small" data-role="benchmarkBtn" type="button">📈 Benchmarking Report</button>
+          </div>
+
+          <div class="status-section">
+            <div class="qos-head">
+              <div class="qos-title">🚦 ${tt("live_status_title")}</div>
+            </div>
+            ${backboneHtml(d.name)}
+            ${liveStatusHtml(d.name)}
+            ${recentStatusReportsHtml(d.name)}
+            <div class="qos-actions">
+              <button class="btn small" data-role="statusBtn" type="button">🚦 ${tt("report_status")}</button>
+              <span class="sync-note">${supa ? t("sync_shared") : t("sync_local")}</span>
+            </div>
+            <div class="status-report-form" data-role="statusForm">
+              <div class="status-choices" data-role="statusChoices">
+                <button type="button" class="status-choice choice-live" data-status="live">🟢 ${t("status_live")}</button>
+                <button type="button" class="status-choice choice-partial" data-status="partial">🟡 ${t("status_partial")}</button>
+                <button type="button" class="status-choice choice-down" data-status="down">🔴 ${t("status_down")}</button>
+              </div>
+              <div class="loc-row">
+                <button class="btn small" data-role="statusLocBtn" type="button">📍 ${tt("btn_use_location")}</button>
+                <select class="city-select" data-role="statusCitySelect">
+                  <option value="">${t("city_manual")}</option>
+                  ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
+                </select>
+              </div>
+              <div class="loc-status" data-role="statusLocStatus"></div>
+              <textarea class="comment-box" data-role="statusCommentBox" maxlength="500" placeholder="${t("comment_placeholder")}"></textarea>
+              <button class="btn small primary" data-role="statusSubmitBtn" type="button">${tt("btn_submit_status")}</button>
+            </div>
+          </div>
+
+          <div class="speed-detail-section">
+            <div class="qos-head">
+              <div class="qos-title">📶 ${tt("bandwidth_title")}</div>
+              <div class="qos-avg">${speedSummaryHtml}</div>
+            </div>
+            ${recentSpeedReportsHtml(d.name)}
+            <div class="qos-actions">
+              <button class="btn small" data-role="speedBtn" type="button">📶 ${tt("report_speed")}</button>
+              <span class="sync-note">${supa ? t("sync_shared") : t("sync_local")}</span>
+            </div>
+            <div class="speed-report-form" data-role="speedForm">
+              <div class="qos-actions" style="margin-bottom:8px;">
+                <button class="btn small" data-role="speedAutoBtn" type="button">${t("btn_run_speed_test")}</button>
+                <span class="muted" style="font-size:11px;" data-role="speedAutoNote">${t("speed_auto_note")}</span>
+              </div>
+              <div class="loc-status" data-role="speedAutoStatus"></div>
+              <div class="speed-input-row">
+                <div class="speed-input-field">
+                  <div class="speed-input-label">${t("download_label")}</div>
+                  <input type="number" class="speed-input" data-role="speedDownInput" min="0" max="10000" step="0.1" placeholder="e.g. 25.4">
+                </div>
+                <div class="speed-input-field">
+                  <div class="speed-input-label">${t("upload_label")}</div>
+                  <input type="number" class="speed-input" data-role="speedUpInput" min="0" max="10000" step="0.1" placeholder="e.g. 8.2">
+                </div>
+              </div>
+              <div class="loc-row">
+                <button class="btn small" data-role="speedLocBtn" type="button">📍 ${tt("btn_use_location")}</button>
+                <select class="city-select" data-role="speedCitySelect">
+                  <option value="">${t("city_manual")}</option>
+                  ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
+                </select>
+              </div>
+              <div class="loc-status" data-role="speedLocStatus"></div>
+              <textarea class="comment-box" data-role="speedCommentBox" maxlength="500" placeholder="${t("comment_placeholder")}"></textarea>
+              <button class="btn small primary" data-role="speedSubmitBtn" type="button">${tt("btn_submit_speed")}</button>
+            </div>
+          </div>
+
+          <div class="qos-section">
+            <div class="qos-head">
+              <div class="qos-title">📶 ${tt("qos_title")}</div>
+              <div class="qos-avg">${qos.count ? starString(Math.round(qos.avg))+" "+qos.avg.toFixed(1) : t("no_ratings_yet")} <span class="muted">(${qos.count} report${qos.count===1?'':'s'})</span></div>
+            </div>
+            ${cityBars}
+            ${recentReportsHtml(d.name)}
+            <div class="qos-actions">
+              <button class="btn small" data-role="rateBtn" type="button">⭐ ${tt("btn_rate")}</button>
+              <span class="sync-note">${supa ? t("sync_shared") : t("sync_local")}</span>
+            </div>
+            <div class="rate-form" data-role="rateForm">
+              <div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">${tt("your_rating")}</div>
+                <span class="star-picker" data-role="starPicker" data-selected="0">
+                  <span class="star-pick" data-val="1">☆</span><span class="star-pick" data-val="2">☆</span><span class="star-pick" data-val="3">☆</span><span class="star-pick" data-val="4">☆</span><span class="star-pick" data-val="5">☆</span>
+                </span>
+              </div>
+              <div class="loc-row">
+                <button class="btn small" data-role="locBtn" type="button">📍 ${tt("btn_use_location")}</button>
+                <select class="city-select" data-role="citySelect">
+                  <option value="">${t("city_manual")}</option>
+                  ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
+                </select>
+              </div>
+              <div class="loc-status" data-role="locStatus"></div>
+              <input type="tel" class="search" data-role="phoneInput" placeholder="${t("phone_placeholder")}" style="width:100%;">
+              <div class="loc-status" data-role="phoneHint"></div>
+              <div class="lexicon-note" style="margin:0;">${t("phone_consent")}</div>
+              <textarea class="comment-box" data-role="commentBox" maxlength="500" placeholder="${t("comment_placeholder")}"></textarea>
+              <button class="btn small primary" data-role="submitBtn" type="button">${tt("btn_submit_rating")}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  // wire up interactions
+  list.querySelectorAll(".row").forEach(rowEl=>{
+    const name = rowEl.getAttribute("data-name");
+    const dataObj = DATA.find(d=>d.name===name);
+
+    rowEl.querySelector('[data-role="toggle"]').addEventListener("click", ()=>{
+      if(openRows.has(name)){ openRows.delete(name); rowEl.classList.remove("open"); }
+      else { openRows.add(name); rowEl.classList.add("open"); }
+    });
+
+    rowEl.querySelector('[data-role="pill"]').addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const idx = STATUS_CYCLE.indexOf(dataObj.status);
+      dataObj.status = STATUS_CYCLE[(idx+1)%STATUS_CYCLE.length];
+      renderList();
+      renderStats();
+    });
+
+    const rateBtn = rowEl.querySelector('[data-role="rateBtn"]');
+    const rateForm = rowEl.querySelector('[data-role="rateForm"]');
+    rateBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      rateForm.style.display = (rateForm.style.display === "flex") ? "none" : "flex";
+    });
+
+    const starPicker = rowEl.querySelector('[data-role="starPicker"]');
+    starPicker.querySelectorAll(".star-pick").forEach(starEl=>{
+      starEl.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        const val = starEl.getAttribute("data-val");
+        starPicker.dataset.selected = val;
+        starPicker.querySelectorAll(".star-pick").forEach(s2=>{
+          s2.textContent = (Number(s2.getAttribute("data-val")) <= Number(val)) ? "★" : "☆";
+        });
+      });
+    });
+
+    const locBtn = rowEl.querySelector('[data-role="locBtn"]');
+    const locStatus = rowEl.querySelector('[data-role="locStatus"]');
+    const citySelect = rowEl.querySelector('[data-role="citySelect"]');
+
+    locBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      if(!navigator.geolocation){
+        locStatus.textContent = "Geolocation isn't supported here — pick a city manually.";
+        return;
+      }
+      locStatus.textContent = "Detecting your location…";
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const { latitude, longitude } = pos.coords;
+        const { city, distanceKm } = nearestCity(latitude, longitude);
+        rateForm.dataset.city = city;
+        citySelect.value = city;
+        locStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
+      }, err=>{
+        locStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
+      }, {timeout:8000});
+    });
+
+    citySelect.addEventListener("click", (e)=> e.stopPropagation());
+    citySelect.addEventListener("change",(e)=>{
+      rateForm.dataset.city = citySelect.value;
+      locStatus.textContent = citySelect.value ? "City set to "+citySelect.value : "";
+    });
+
+    const commentBox = rowEl.querySelector('[data-role="commentBox"]');
+    commentBox.addEventListener("click",(e)=> e.stopPropagation());
+
+    const phoneInput = rowEl.querySelector('[data-role="phoneInput"]');
+    const phoneHint = rowEl.querySelector('[data-role="phoneHint"]');
+    phoneInput.addEventListener("click",(e)=> e.stopPropagation());
+    phoneInput.addEventListener("input",(e)=>{
+      e.stopPropagation();
+      const detected = detectIspFromPhone(phoneInput.value);
+      if(!detected){ phoneHint.textContent = ""; return; }
+      phoneHint.textContent = t("phone_detect_hint").replace("{isp}", detected)
+        + (detected !== name ? "" : " ✓");
+    });
+
+    const submitBtn = rowEl.querySelector('[data-role="submitBtn"]');
+    submitBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const stars = Number(starPicker.dataset.selected || "0");
+      if(stars < 1){
+        locStatus.textContent = "Pick a star rating before submitting.";
+        return;
+      }
+      const city = rateForm.dataset.city || "Unknown";
+      const phone = (phoneInput.value||"").trim();
+      submitReport({ isp:name, stars, comment:(commentBox.value||"").trim(), city, ts: Date.now() });
+      if(phone) upsertCustomer(phone, detectIspFromPhone(phone));
+      phoneInput.value = ""; phoneHint.textContent = "";
+    });
+
+    const referralLink = rowEl.querySelector('[data-role="referralLink"]');
+    if(referralLink){
+      referralLink.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        logReferralClick(referralLink.getAttribute("data-isp"), referralLink.getAttribute("data-context"));
+      });
+    }
+    const benchmarkBtn = rowEl.querySelector('[data-role="benchmarkBtn"]');
+    if(benchmarkBtn){
+      benchmarkBtn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        openBenchmarkReport(name);
+      });
+    }
+
+    const statusBtn = rowEl.querySelector('[data-role="statusBtn"]');
+    const statusForm = rowEl.querySelector('[data-role="statusForm"]');
+    statusBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      statusForm.style.display = (statusForm.style.display === "flex") ? "none" : "flex";
+    });
+
+    const statusChoices = rowEl.querySelector('[data-role="statusChoices"]');
+    statusChoices.querySelectorAll(".status-choice").forEach(choiceBtn=>{
+      choiceBtn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        statusChoices.querySelectorAll(".status-choice").forEach(b=>b.classList.remove("active"));
+        choiceBtn.classList.add("active");
+        statusForm.dataset.status = choiceBtn.getAttribute("data-status");
+      });
+    });
+
+    const statusLocBtn = rowEl.querySelector('[data-role="statusLocBtn"]');
+    const statusLocStatus = rowEl.querySelector('[data-role="statusLocStatus"]');
+    const statusCitySelect = rowEl.querySelector('[data-role="statusCitySelect"]');
+
+    statusLocBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      if(!navigator.geolocation){
+        statusLocStatus.textContent = "Geolocation isn't supported here — pick a city manually.";
+        return;
+      }
+      statusLocStatus.textContent = "Detecting your location…";
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const { latitude, longitude } = pos.coords;
+        const { city, distanceKm } = nearestCity(latitude, longitude);
+        statusForm.dataset.city = city;
+        statusCitySelect.value = city;
+        statusLocStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
+      }, err=>{
+        statusLocStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
+      }, {timeout:8000});
+    });
+
+    statusCitySelect.addEventListener("click", (e)=> e.stopPropagation());
+    statusCitySelect.addEventListener("change",(e)=>{
+      statusForm.dataset.city = statusCitySelect.value;
+      statusLocStatus.textContent = statusCitySelect.value ? "City set to "+statusCitySelect.value : "";
+    });
+
+    const statusCommentBox = rowEl.querySelector('[data-role="statusCommentBox"]');
+    statusCommentBox.addEventListener("click",(e)=> e.stopPropagation());
+
+    const statusSubmitBtn = rowEl.querySelector('[data-role="statusSubmitBtn"]');
+    statusSubmitBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const status = statusForm.dataset.status;
+      if(!status){
+        statusLocStatus.textContent = "Pick Live, Partial or Down before submitting.";
+        return;
+      }
+      const city = statusForm.dataset.city || "Unknown";
+      submitStatus({ isp:name, city, status, comment:(statusCommentBox.value||"").trim(), ts: Date.now() });
+      statusForm.dataset.status = "";
+      statusChoices.querySelectorAll(".status-choice").forEach(b=>b.classList.remove("active"));
+      statusCommentBox.value = "";
+    });
+
+    const speedBtn = rowEl.querySelector('[data-role="speedBtn"]');
+    const speedForm = rowEl.querySelector('[data-role="speedForm"]');
+    speedBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      speedForm.style.display = (speedForm.style.display === "flex") ? "none" : "flex";
+    });
+
+    const speedDownInput = rowEl.querySelector('[data-role="speedDownInput"]');
+    const speedUpInput = rowEl.querySelector('[data-role="speedUpInput"]');
+    speedDownInput.addEventListener("click",(e)=> e.stopPropagation());
+    speedUpInput.addEventListener("click",(e)=> e.stopPropagation());
+
+    const speedLocBtn = rowEl.querySelector('[data-role="speedLocBtn"]');
+    const speedLocStatus = rowEl.querySelector('[data-role="speedLocStatus"]');
+    const speedCitySelect = rowEl.querySelector('[data-role="speedCitySelect"]');
+
+    speedLocBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      if(!navigator.geolocation){
+        speedLocStatus.textContent = "Geolocation isn't supported here — pick a city manually.";
+        return;
+      }
+      speedLocStatus.textContent = "Detecting your location…";
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const { latitude, longitude } = pos.coords;
+        const { city, distanceKm } = nearestCity(latitude, longitude);
+        speedForm.dataset.city = city;
+        speedCitySelect.value = city;
+        speedLocStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
+      }, err=>{
+        speedLocStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
+      }, {timeout:8000});
+    });
+
+    speedCitySelect.addEventListener("click", (e)=> e.stopPropagation());
+    speedCitySelect.addEventListener("change",(e)=>{
+      speedForm.dataset.city = speedCitySelect.value;
+      speedLocStatus.textContent = speedCitySelect.value ? "City set to "+speedCitySelect.value : "";
+    });
+
+    const speedCommentBox = rowEl.querySelector('[data-role="speedCommentBox"]');
+    speedCommentBox.addEventListener("click",(e)=> e.stopPropagation());
+
+    const speedAutoBtn = rowEl.querySelector('[data-role="speedAutoBtn"]');
+    const speedAutoStatus = rowEl.querySelector('[data-role="speedAutoStatus"]');
+    if(speedAutoBtn){
+      if(!speedTestSupported()){
+        speedAutoBtn.style.display = "none";
+        if(speedAutoStatus) speedAutoStatus.textContent = t("speed_auto_unsupported");
+      } else {
+        speedAutoBtn.addEventListener("click", (e)=>{
+          e.stopPropagation();
+          runAutoSpeedTest(rowEl, speedDownInput, speedUpInput, speedAutoBtn, speedAutoStatus);
+        });
+      }
+    }
+
+    const speedSubmitBtn = rowEl.querySelector('[data-role="speedSubmitBtn"]');
+    speedSubmitBtn.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      const downloadVal = parseFloat(speedDownInput.value);
+      const uploadVal = parseFloat(speedUpInput.value);
+      if(!(downloadVal >= 0) || !(uploadVal >= 0)){
+        speedLocStatus.textContent = "Enter both a download and an upload speed (Mbps) before submitting.";
+        return;
+      }
+      const city = speedForm.dataset.city || "Unknown";
+      let extra = {};
+      try{ extra = rowEl.dataset.speedExtra ? JSON.parse(rowEl.dataset.speedExtra) : {}; }catch(parseErr){}
+      submitSpeed({
+        isp:name, city, download_mbps: downloadVal, upload_mbps: uploadVal,
+        comment:(speedCommentBox.value||"").trim(), ts: Date.now(),
+        test_method: extra.test_method || "manual",
+        latency_idle_ms: extra.latency_idle_ms ?? null,
+        latency_download_ms: extra.latency_download_ms ?? null,
+        latency_upload_ms: extra.latency_upload_ms ?? null,
+        jitter_download_ms: extra.jitter_download_ms ?? null,
+        jitter_upload_ms: extra.jitter_upload_ms ?? null,
+        packet_loss_pct: extra.packet_loss_pct ?? null,
+        connection_type: extra.connection_type ?? null,
+        device_type: extra.device_type ?? null
+      });
+      speedDownInput.value = "";
+      speedUpInput.value = "";
+      speedCommentBox.value = "";
+      delete rowEl.dataset.speedExtra;
+      if(speedAutoStatus) speedAutoStatus.textContent = "";
+    });
+  });
+}
+
+/* ---------- Automatic speed test (Cloudflare Speed Test, client-side, free/open-source) ---------- */
+function speedTestSupported(){
+  return !!(window.fetch && window.Promise && typeof Worker !== "undefined");
+}
+
+async function runAutoSpeedTest(rowEl, downInput, upInput, autoBtn, statusEl){
+  if(!window.__CFSpeedTest){
+    // Not loaded yet doesn't mean unsupported — the library import (see the <script type="module">
+    // above) is still an in-flight network fetch more often than not the first time someone clicks
+    // this soon after page load. Wait on window.__CFSpeedTestReady rather than assuming failure.
+    autoBtn.disabled = true;
+    if(statusEl) statusEl.textContent = t("speed_auto_loading");
+    const loaded = window.__CFSpeedTestReady ? await window.__CFSpeedTestReady : false;
+    autoBtn.disabled = false;
+    if(!loaded || !window.__CFSpeedTest){
+      // The import promise resolved false (or __CFSpeedTestReady doesn't exist at all, e.g. the
+      // module script itself was blocked) — this is a genuine load failure, not a browser
+      // capability gap, so it gets its own message rather than reusing speed_auto_unsupported.
+      if(statusEl) statusEl.textContent = t("speed_auto_load_failed");
+      return;
+    }
+  }
+  autoBtn.disabled = true;
+  if(statusEl) statusEl.textContent = t("speed_auto_running");
+  try{
+    const test = new window.__CFSpeedTest({
+      autoStart: true,
+      // A deliberately light measurement profile — this audience includes people on
+      // metered/expensive mobile data, so we favor "usually a few MB" over exhaustive
+      // accuracy. See SKILL.md for the reasoning and how to tune this.
+      measurements: [
+        { type: "latency", numPackets: 1 },
+        { type: "download", bytes: 1e6, count: 3 },
+        { type: "latency", numPackets: 20 },
+        { type: "upload", bytes: 5e5, count: 3 },
+        { type: "packetLoss", numPackets: 500 }
+      ]
+    });
+    await new Promise((resolve, reject)=>{
+      test.onFinish = ()=>resolve();
+      test.onError = (err)=>reject(err);
+    });
+    const s = test.results.getSummary();
+    const downloadMbps = s.download!=null ? s.download/1e6 : null;
+    const uploadMbps = s.upload!=null ? s.upload/1e6 : null;
+    if(downloadMbps!=null) downInput.value = downloadMbps.toFixed(1);
+    if(uploadMbps!=null) upInput.value = uploadMbps.toFixed(1);
+    rowEl.dataset.speedExtra = JSON.stringify({
+      test_method: "auto",
+      latency_idle_ms: s.latency ?? null,
+      latency_download_ms: s.downLoadedLatency ?? null,
+      latency_upload_ms: s.upLoadedLatency ?? null,
+      jitter_download_ms: s.downLoadedJitter ?? null,
+      jitter_upload_ms: s.upLoadedJitter ?? null,
+      packet_loss_pct: s.packetLoss!=null ? s.packetLoss*100 : null,
+      connection_type: (navigator.connection && navigator.connection.effectiveType) || null,
+      device_type: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop"
+    });
+    if(statusEl) statusEl.textContent = t("speed_auto_done");
+  }catch(e){
+    console.warn("Automatic speed test failed — falling back to manual entry", e);
+    if(statusEl) statusEl.textContent = t("speed_auto_failed");
+  }finally{
+    autoBtn.disabled = false;
+  }
+}
+
+function renderImpact(){
+  const toSel = document.getElementById("impactToIsp");
+  const fromSel = document.getElementById("impactFromIsp");
+  if(toSel.options.length <= 1){
+    toSel.innerHTML = `<option value="">—</option>` + DATA.map(d=>`<option value="${d.name}">${d.name}</option>`).join("");
+    fromSel.innerHTML = `<option value="">—</option>` + DATA.map(d=>`<option value="${d.name}">${d.name}</option>`).join("");
+  }
+  document.getElementById("impactReferralCta").innerHTML = referralHtml(toSel.value, "switch_form");
+
+  const agg = conversionsAggregate();
+  document.getElementById("impactStats").innerHTML = [
+    {num: agg.total, lbl: t("stat_conversions")},
+    {num: Object.entries(agg.byIsp).sort((a,b)=>b[1]-a[1])[0] ? Object.entries(agg.byIsp).sort((a,b)=>b[1]-a[1])[0][0] : "—", lbl:"top ISP for switches/signups"},
+    {num: Object.entries(agg.byReason).sort((a,b)=>b[1]-a[1])[0] ? t("reason_"+Object.entries(agg.byReason).sort((a,b)=>b[1]-a[1])[0][0]) : "—", lbl:"top reported reason"}
+  ].map(s=>`<div class="stat"><div class="num">${s.num}</div><div class="lbl">${s.lbl}</div></div>`).join("");
+
+  const byIspSorted = Object.entries(agg.byIsp).sort((a,b)=>b[1]-a[1]);
+  const byReasonSorted = Object.entries(agg.byReason).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("impactBreakdown").innerHTML = agg.total ? `
+    <div class="city-bars">${byIspSorted.map(([isp,c])=>{
+      const pct = Math.max(6, Math.round((c/agg.total)*100));
+      return `<div class="city-bar-row"><span class="city-name">${isp}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="city-meta">${c}</span></div>`;
+    }).join("")}</div>
+    <div class="city-bars" style="margin-top:6px;">${byReasonSorted.map(([r,c])=>{
+      const pct = Math.max(6, Math.round((c/agg.total)*100));
+      return `<div class="city-bar-row"><span class="city-name">${t("reason_"+r)}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="city-meta">${c}</span></div>`;
+    }).join("")}</div>
+  ` : `<div class="empty-note">No switches/signups reported yet.</div>`;
+
+  const recent = CONVERSIONS.slice().sort((a,b)=>b.ts-a.ts).slice(0,6);
+  document.getElementById("impactRecent").innerHTML = recent.map(c=>`
+    <div class="impact-story">
+      <strong>${c.from_isp ? c.from_isp : "New subscriber"}</strong> <span class="arrow">→</span> <strong>${c.to_isp}</strong>
+      · ${c.city} · ${relTime(c.ts)}<br>
+      <span style="color:var(--muted);">${(c.reasons||[]).map(r=>t("reason_"+r)).join(", ")}</span>
+      ${c.comment ? `<div class="report-comment">“${c.comment}”</div>` : ""}
+    </div>
+  `).join("");
+}
+
+function renderSpeedSection(){
+  const { entries, overallAvgDown, overallAvgUp } = speedAggregateAll();
+  const totalReportsWindow = entries.reduce((a,e)=>a+e.calib.reportCount,0);
+
+  document.getElementById("radarBenchmark").innerHTML = radarBenchmarkHtml();
+
+  document.getElementById("speedStats").innerHTML = [
+    {num: entries.length, lbl: t("stat_speed_isps")},
+    {num: entries.length ? overallAvgDown.toFixed(1)+" Mbps" : "—", lbl:"avg download across reporting ISPs (24h)"},
+    {num: entries.length ? overallAvgUp.toFixed(1)+" Mbps" : "—", lbl:"avg upload across reporting ISPs (24h)"},
+    {num: totalReportsWindow, lbl: t("stat_speed_reports")}
+  ].map(s=>`<div class="stat"><div class="num">${s.num}</div><div class="lbl">${s.lbl}</div></div>`).join("");
+
+  const maxDown = entries.length ? Math.max(...entries.map(e=>e.calib.downloadMbps)) : 0;
+  const rankedHtml = entries.map((e,i)=>{
+    const tier = speedTier(e.calib.downloadMbps, overallAvgDown);
+    const meta = SPEED_TIER_META[tier];
+    const pct = maxDown>0 ? Math.max(6, Math.round((e.calib.downloadMbps/maxDown)*100)) : 6;
+    return `<div class="speed-rank-row">
+      <div class="speed-rank-num">${i+1}</div>
+      <div class="speed-rank-name"><span class="status-dot" style="background:${meta.color}"></span>${e.isp}</div>
+      <div class="speed-rank-bars">
+        <div class="speed-bar-track"><div class="speed-bar-fill" style="width:${pct}%;background:${meta.color}"></div></div>
+        <div class="speed-bar-label">${e.calib.downloadMbps.toFixed(1)} Mbps ↓ · ${e.calib.uploadMbps.toFixed(1)} Mbps ↑</div>
+      </div>
+      <div class="speed-tier-badge" style="background:${meta.color}22;color:${meta.color};">${meta.label}</div>
+    </div>`;
+  }).join("");
+
+  const noDataIsps = DATA.filter(d=>!entries.find(e=>e.isp===d.name)).map(d=>d.name);
+  const noDataHtml = noDataIsps.length ? `<div class="speed-no-data-list">${t("speed_no_recent")}: ${noDataIsps.join(", ")}</div>` : "";
+
+  document.getElementById("speedRankedList").innerHTML = entries.length
+    ? `<div class="speed-rank-list">${rankedHtml}</div>${noDataHtml}`
+    : `<div class="empty-note">${t("speed_no_recent_any")}</div>${noDataHtml}`;
+}
+
+function renderTranslatePanel(){
+  const keySelect = document.getElementById("suggestKey");
+  if(keySelect.options.length === 0){
+    keySelect.innerHTML = TRANSLATABLE_KEYS.map(k=>`<option value="${k}">${k} — "${I18N.en[k]}"</option>`).join("");
+  }
+  const langSel = document.getElementById("suggestLang").value || "sn";
+  const keySel = keySelect.value || TRANSLATABLE_KEYS[0];
+  const currentBase = (I18N[langSel]||{})[keySel];
+  const currentOverride = (translationOverrides[langSel]||{})[keySel];
+  document.getElementById("suggestCurrent").textContent = "Current: " + (currentOverride ? currentOverride+" (community-verified)" : (currentBase ? currentBase+" (draft)" : "— not yet translated —"));
+
+  const pending = TRANSLATIONS.filter(x=>x.status==="pending").sort((a,b)=>b.ts-a.ts);
+  const approved = TRANSLATIONS.filter(x=>x.status==="approved").sort((a,b)=>b.ts-a.ts);
+
+  const queue = document.getElementById("translateQueue");
+  let html = "";
+  if(pending.length){
+    html += `<div class="translate-queue-title">Pending review (${pending.length})</div>`;
+    html += pending.map(x=>`
+      <div class="translate-item">
+        <span class="tlang">${LANG_NAMES[x.lang]||x.lang}</span><span class="tkey">${x.string_key}</span>
+        <div class="ttext">${x.suggested_text}</div>
+        ${x.source_note ? `<div class="tsource">Source: ${x.source_note}</div>` : ""}
+        <div class="tactions">
+          <button class="btn small" data-role="endorseBtn" data-id="${x.id}" type="button">👍 Endorse (${x.endorsements||0}/2)</button>
+        </div>
+      </div>
+    `).join("");
+  }
+  if(approved.length){
+    html += `<div class="translate-queue-title">✅ Verified (${approved.length})</div>`;
+    html += approved.map(x=>`
+      <div class="translate-item">
+        <span class="tlang">${LANG_NAMES[x.lang]||x.lang}</span><span class="tkey">${x.string_key}</span>
+        <span class="verified-badge">✓</span>
+        <div class="ttext">${x.suggested_text}</div>
+        ${x.source_note ? `<div class="tsource">Source: ${x.source_note}</div>` : ""}
+      </div>
+    `).join("");
+  }
+  if(!pending.length && !approved.length){
+    html = `<div class="empty-note">No community suggestions yet — be the first to help translate.</div>`;
+  }
+  queue.innerHTML = html;
+
+  queue.querySelectorAll('[data-role="endorseBtn"]').forEach(btn=>{
+    btn.addEventListener("click", ()=> endorseTranslation(btn.getAttribute("data-id")));
+  });
+}
+
+function renderAll(){
+  applyStaticTranslations();
+  renderStats();
+  renderList();
+  renderImpact();
+  renderSpeedSection();
+  renderTranslatePanel();
+}
+
+document.getElementById("search").addEventListener("input", (e)=>{
+  state.query = e.target.value;
+  renderList();
+});
+
+document.querySelectorAll(".chip[data-filter]").forEach(chip=>{
+  chip.addEventListener("click", ()=>{
+    document.querySelectorAll(".chip[data-filter]").forEach(c=>c.classList.remove("active"));
+    chip.classList.add("active");
+    state.filter = chip.getAttribute("data-filter");
+    renderList();
+  });
+});
+
+document.querySelectorAll(".lang-chip").forEach(chip=>{
+  chip.addEventListener("click", ()=>{
+    currentLang = chip.getAttribute("data-lang");
+    try{ localStorage.setItem("mz_isp_lang", currentLang); }catch(e){}
+    renderAll();
+  });
+});
+
+document.getElementById("simpleModeToggle").addEventListener("click", ()=>{
+  const btn = document.getElementById("simpleModeToggle");
+  const active = document.body.classList.toggle("simple-mode");
+  btn.setAttribute("aria-pressed", active ? "true":"false");
+  document.getElementById("simpleModeLabel").textContent = active ? t("simple_mode_on") : t("simple_mode_off");
+});
+
+document.getElementById("toggleTranslatePanel").addEventListener("click", ()=>{
+  const panel = document.getElementById("translatePanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+});
+
+document.getElementById("suggestLang").addEventListener("change", renderTranslatePanel);
+document.getElementById("suggestKey").addEventListener("change", renderTranslatePanel);
+document.getElementById("suggestSubmitBtn").addEventListener("click", ()=>{
+  const lang = document.getElementById("suggestLang").value;
+  const key = document.getElementById("suggestKey").value;
+  const text = document.getElementById("suggestText").value.trim();
+  const source = document.getElementById("suggestSource").value.trim();
+  if(!text){ alert("Please enter a suggested translation first."); return; }
+  submitTranslation({ lang, string_key:key, suggested_text:text, source_note:source });
+  document.getElementById("suggestText").value = "";
+  document.getElementById("suggestSource").value = "";
+});
+
+document.getElementById("impactLocBtn").addEventListener("click", ()=>{
+  const status = document.getElementById("impactLocStatus");
+  const citySelect = document.getElementById("impactCitySelect");
+  if(!navigator.geolocation){
+    status.textContent = "Geolocation isn't supported here — pick a city manually.";
+    return;
+  }
+  status.textContent = "Detecting your location…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const { latitude, longitude } = pos.coords;
+    const { city, distanceKm } = nearestCity(latitude, longitude);
+    citySelect.value = city;
+    status.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
+  }, err=>{
+    status.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
+  }, {timeout:8000});
+});
+
+document.getElementById("impactToIsp").addEventListener("change", ()=>{
+  document.getElementById("impactReferralCta").innerHTML = referralHtml(document.getElementById("impactToIsp").value, "switch_form");
+});
+document.getElementById("impactReferralCta").addEventListener("click",(e)=>{
+  const link = e.target.closest('[data-role="referralLink"]');
+  if(!link) return;
+  logReferralClick(link.getAttribute("data-isp"), link.getAttribute("data-context"));
+});
+
+let impactFromIspTouched = false;
+document.getElementById("impactFromIsp").addEventListener("change", ()=>{ impactFromIspTouched = true; });
+document.getElementById("impactPhone").addEventListener("input", ()=>{
+  const phone = document.getElementById("impactPhone").value;
+  const detected = detectIspFromPhone(phone);
+  const fromSel = document.getElementById("impactFromIsp");
+  if(detected && !impactFromIspTouched && [...fromSel.options].some(o=>o.value===detected)){
+    fromSel.value = detected;
+  }
+  const status = document.getElementById("impactLocStatus");
+  status.textContent = detected ? t("phone_detect_hint").replace("{isp}", detected) : "";
+});
+
+document.getElementById("impactSubmitBtn").addEventListener("click", ()=>{
+  const toIsp = document.getElementById("impactToIsp").value;
+  const fromIsp = document.getElementById("impactFromIsp").value || null;
+  const city = document.getElementById("impactCitySelect").value || "Unknown";
+  const comment = document.getElementById("impactComment").value.trim();
+  const reasons = Array.from(document.querySelectorAll('[data-role="reasonCheck"]:checked')).map(el=>el.value);
+  const status = document.getElementById("impactLocStatus");
+  const phone = document.getElementById("impactPhone").value.trim();
+  if(!toIsp){ status.textContent = "Please choose which ISP you switched to / signed up with."; return; }
+  if(!phone || !isValidPhone(phone)){ status.textContent = t("phone_required_note"); return; }
+  submitConversion({ to_isp: toIsp, from_isp: fromIsp, reasons, city, comment, ts: Date.now() });
+  upsertCustomer(phone, detectIspFromPhone(phone));
+  document.getElementById("impactComment").value = "";
+  document.getElementById("impactPhone").value = "";
+  impactFromIspTouched = false;
+  document.querySelectorAll('[data-role="reasonCheck"]').forEach(el=> el.checked = false);
+  status.textContent = "Thanks — logged!";
+});
+
+document.getElementById("resetQos").addEventListener("click", async ()=>{
+  if(supa){
+    await initBackend();
+    return;
+  }
+  if(confirm("Reset all crowdsourced data (ratings, switch/signup reports, status reports, speed tests) back to the sample data set? This clears anything you've submitted in this browser.")){
+    REPORTS = SEED_REPORTS.slice();
+    CONVERSIONS = SEED_CONVERSIONS.slice();
+    STATUS_REPORTS = SEED_STATUS.slice();
+    SPEED_REPORTS = SEED_SPEED.slice();
+    REFERRAL_CLICKS = [];
+    saveLocalReports(REPORTS);
+    saveLocalConversions(CONVERSIONS);
+    saveLocalStatus(STATUS_REPORTS);
+    saveLocalSpeed(SPEED_REPORTS);
+    saveLocalReferrals(REFERRAL_CLICKS);
+    renderAll();
+  }
+});
+
+document.getElementById("fbSubmit").addEventListener("click", submitFeedback);
+
+renderAll();
+initBackend();
+refreshBackboneVisibility(); // live RIPEstat fetch, fire-and-forget — re-renders when it resolves
+// refreshRadarBenchmark(); intentionally not invoked on this site — see comment above radarBenchmarkHtml().
+refreshIodaSignal();         // live IODA/CAIDA national connectivity fetch, no setup needed, fire-and-forget
+</script>
+</body>
+</html>
