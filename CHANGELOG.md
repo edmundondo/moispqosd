@@ -7,6 +7,35 @@ All notable changes to the Mozambique ISP Tracker are recorded here. Format foll
 The version number shown here matches the `<meta name="app-version">` tag in
 `index.html` and the `v{version}` badge in the page's footer.
 
+## [1.1.0] — 2026-09-17
+
+### Fixed
+- **The expanded provider row (star rating, live-status report, speed test) used a fixed
+  `max-height:1200px` cap to animate opening/closing, with `overflow:hidden` on the box the whole
+  time — any provider whose expanded content ran taller than that had everything past ~1200px of
+  content silently clipped away and unreachable by any amount of scrolling, including the comment
+  box and "Submit rating" button on the QoS form. Same bug, same fix as `zwispqosd` v1.3.1:
+  replaced the fixed-pixel animation with a CSS grid `0fr → 1fr` expand (no JS, no fixed cap) that
+  always sizes to the row's actual content on any device.
+
+### Added
+- **Real area/suburb picker on every rating/report form** (QoS rating, live-status report, speed
+  test, switch/signup) — ported from `zwispqosd` v1.3.0. A new `<select>` next to the existing
+  city picker, populated from a researched, sourced list of real Mozambican suburbs/areas/bairros
+  per tracked city (`AREAS` in `index.html`). Picking a city populates that city's real areas;
+  "Use my location" still only ever resolves to a tracked city (never an area) and clears the area
+  choice when it fires. Coverage is honestly uneven: Maputo and Matola have dozens of sourced
+  bairros; smaller cities only have a handful because that's genuinely all that could be traced to
+  a real source (Wikipedia, municipal documents, established news outlets) — "Whole city / not
+  sure" is always available and the honest default. Sourcing notes for each city are documented
+  inline in `index.html` next to the `AREAS` object.
+
+### Notes
+- Same additive, nullable `area` column already in place on the shared Supabase project (added
+  for `zwispqosd` v1.3.0) — no new migration needed for this repo.
+- Companion to `moispqosp` v0.4.0's provider-analytics drill-down, which is what surfaces this
+  field (City → Area → ISP → individual reports).
+
 ## [1.0.0] — 2026-09-13
 
 Baseline versioned release. Built from `zwispqosd`'s v1.2.0 (no-exports) template,

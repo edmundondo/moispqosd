@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="1.0.0">
+<meta name="app-version" content="1.1.0">
 <title>Mozambique ISP Tracker</title>
 <style>
   :root{
@@ -133,11 +133,17 @@
   .pill.estimated{background:rgba(232,185,63,.15);color:var(--yellow);border-color:rgba(232,185,63,.35);}
   .pill.unconfirmed{background:rgba(92,107,128,.18);color:var(--grey);border-color:rgba(92,107,128,.4);}
 
+  /* Auto-height expand/collapse via CSS grid (0fr -> 1fr): sizes to whatever the
+     content actually needs on any device, instead of clipping anything past a fixed
+     pixel cap (a fixed max-height used to silently cut off the bottom of tall detail
+     panels — e.g. the submit button below a long rating form — with no way to reach
+     the clipped part, since overflow was hidden and it wasn't just a page-scroll issue). */
   .detail{
-    max-height:0;overflow:hidden;transition:max-height .3s ease;
+    display:grid;grid-template-rows:0fr;overflow:hidden;transition:grid-template-rows .3s ease;
   }
-  .row.open .detail{max-height:1200px;margin-top:12px;}
+  .row.open .detail{grid-template-rows:1fr;margin-top:12px;}
   .detail-inner{
+    min-height:0;overflow:hidden;
     border-top:1px solid var(--border);padding-top:12px;font-size:13px;color:#c3cddb;line-height:1.55;
   }
   .detail-inner .src{color:var(--muted);font-size:12px;margin-top:8px;display:block;}
@@ -387,7 +393,8 @@
     .row{border:1px solid #ccc;break-inside:avoid;}
     .pill{border:1px solid #999;}
     .caret{display:none;}
-    .row .detail{max-height:none!important;margin-top:8px!important;}
+    .row .detail{grid-template-rows:1fr!important;margin-top:8px!important;}
+    .row .detail-inner{overflow:visible!important;}
     .qos-actions,.rate-form,.impact-form-card,.status-report-form,.speed-report-form{display:none!important;}
   }
 </style>
@@ -536,6 +543,7 @@
         <div class="loc-row" style="margin-top:12px;">
           <button class="btn small" id="impactLocBtn" type="button">📍 <span id="impactLocLabel">Use my location</span></button>
           <select class="city-select" id="impactCitySelect"><option value="">…</option></select>
+          <select class="city-select" id="impactAreaSelect"><option value="">…</option></select>
         </div>
         <div class="loc-status" id="impactLocStatus"></div>
         <textarea class="comment-box" id="impactComment" maxlength="500" style="margin-top:10px;" placeholder="Optional: tell us more…"></textarea>
@@ -602,7 +610,7 @@
       <span class="matokipedo-tagline">Live infrastructure monitoring by Matokipedo</span>
     </div>
     <span class="reset-link" id="resetQos">refresh / reset local data</span>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px;">v1.0.0 &middot; <a href="CHANGELOG.md" style="color:inherit;">changelog</a></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;">v1.1.0 &middot; <a href="CHANGELOG.md" style="color:inherit;">changelog</a></div>
   </footer>
 </div>
 
@@ -839,6 +847,8 @@ const I18N = {
     your_rating: "Your rating",
     btn_use_location: "Use my location",
     city_manual: "…or choose city manually",
+    area_manual: "Area / suburb (optional)",
+    area_none: "Whole city / not sure",
     comment_placeholder: "Optional: describe your experience (speed, reliability, outages)…",
     btn_submit_rating: "Submit rating",
     no_ratings_yet: "No ratings yet",
@@ -1333,6 +1343,34 @@ const CITIES = [
   {name:"Pemba", lat:-12.9740, lon:40.5178}
 ];
 
+/* Per-city sourcing notes (area/suburb data), for the record:
+   - Maputo: Strong coverage (62 bairros). Primary source is the official Conselho Municipal de Maputo website (cmmaputo.gov.mz/distritos-municipais), which organizes the city into 7 Distritos Municipais (KaMpfumu, Nlhamankulu, KaMaxaquene, KaMavota, KaMubukwana, KaNyaka, KaTembe) each with its named bairros. Cross-checked against English Wikipedia articles for individual districts (KaMpfumo, KaMaxaquene, KaMavota, Nlhamankulu) and the main Maputo article, which confirmed well-known bairros (Polana, Sommerschield, Malhangalene, Costa do Sol, Zimpeto, Baixa/Central, Mafalala, Maxaquene). One duplicate ('Coop', listed under both KaMpfumu and KaMavota in the source table) was deduplicated. High confidence, official government source.
+   - Matola: Strong coverage (42 bairros). Primary source is an academic thesis/report hosted on the University of Porto open repository ('Morfologia Urbana da Matola', repositorio-aberto.up.pt), which lists all 42 bairros across Matola's 3 postos administrativos (Matola Sede, Machava, Infulene) — the listed count matched the document's own stated total exactly, a strong reliability signal. Cross-validated against an independent Redalyc academic journal article on vegetation cover in Matola, which named most of the same bairros (Fomento, Liberdade, Khongolote, Sikwama, Ndlavela, Tsalala, Zona Verde, Intaca, Bunhiça, Nkobe, Matola Gare, Boquisso/Boquiço A&B, etc.) with only minor spelling variants. Portuguese-language academic sources were essential here; no English Wikipedia coverage of Matola bairros exists.
+   - Beira: Reasonable-to-strong coverage (27 bairros). Primary source is an official UN-Habitat country profile PDF (unhabitat.org, 'Mozambique - Beira'), which lists all 26 bairros across Beira's 5 postos administrativos, matching the total of 26 stated independently by the Portuguese Wikipedia article (which supplied a partial table: Central and Munhava postos). Added 'Chipangara', confirmed as a real, currently-used Beira bairro by both Portuguese Wikipedia and an independent 2024 academic article (MDPI journal) on urban water/sanitation, even though it did not appear verbatim in the UN-Habitat list (administrative naming may have shifted slightly between sources/years). Portuguese-language sources were used for cross-validation.
+   - Nampula: Moderate coverage (25 bairros). Source is the Portuguese Wikipedia article for Nampula, which gives a detailed breakdown of bairros under each of the city's postos administrativos urbanos (Urbano Central, Anchilo, Muahivire, Muatala, Muhala, Namikopo, Napipine, Natikire). This is the only source found with a itemized bairro-level list for Nampula; no independent second source was found to cross-validate every individual name, so confidence is moderate rather than high, though the structure (postos + bairros) is consistent with Mozambican municipal administrative convention seen elsewhere.
+   - Chimoio: Good coverage (38 bairros) achieved only via Portuguese-language sources. A document hosted on the Frelimo party website (demo.frelimo.org.mz/Chimoio.pdf) — evidently reproducing municipal administrative data — lists 34 bairros across Chimoio's 4 postos administrativos municipais (Nyaukaranga, Chaurumba, Ngomai, Mandigo). This was strongly cross-validated by an independent World Bank Portuguese-language report (documents1.worldbank.org), which named nearly all the same bairros (Agostinho Neto, Nhamatsane, Chissui, Hombwa, Heróis Moçambicanos, Vila Nova, Bloco 9, Josina Machel, Chianga, Textáfrica, 1º de Maio, etc.) plus five additional numbered bairros (Bairro 1-5), also referenced independently by a Verdade news article on Chimoio's municipal elections. Given two independent sources with heavy overlap, confidence is good despite the party-affiliated origin of the primary list.
+   - Tete: Thin coverage (9 bairros). Source is the Portuguese Wikipedia article for Tete (cidade), which states the municipality is divided into exactly nine bairros municipais and names them all. One of these ('Matundo') was independently corroborated by an academic conference paper from IESE Moçambique (a respected Maputo-based think tank), discussing land disputes in the 'Bairros Matundo e Mate' in Tete — though 'Mate' itself was not added since it could not be independently confirmed as a distinct, current bairro name. Only one primary source for the full list; confidence is moderate.
+   - Quelimane: Thin coverage (5 bairros), consistent with genuinely limited traceable data. English and Portuguese Wikipedia articles for Quelimane contain no bairro-level detail at all. The five names included (Ícidua, Chuabo Dembe, Sangariveira, Micajuine, Manhaua) come from separate credible sources: peer-reviewed/academic papers on mangrove-area land use in Ícidua, Chuabo Dembe and Sangariveira; a Mozambican Instituto Nacional de Saúde (government health institute) bulletin naming Ícidua and Micajuine in a cholera/diarrheal-disease context; and academic/local-news references to the Manhaua bairro. No comprehensive official bairro list for Quelimane could be located (a government MAEFP/PDUL urban diagnostic PDF that likely contains one repeatedly failed to load). List intentionally left short rather than padded.
+   - Pemba: Good coverage (13 bairros) from a single strong source. The official Conselho Municipal da Cidade de Pemba website (cmcpemba.gov.mz/bairros) states the city has exactly 13 urban bairros across 4 postos administrativos (Ingonane, Cariacó, Eduardo Mondlane, Mahate) and names all of them. This is an official government source and is treated as high-confidence, though no independent second source was checked to cross-validate every individual name.
+*/
+const AREAS = {
+  "Maputo": ["Alto Maé A", "Alto Maé B", "Central A", "Central B", "Central C", "Coop", "Malhangalene A", "Malhangalene B", "Polana-Cimento A", "Polana-Cimento B", "Sommerschield", "Aeroporto A", "Aeroporto B", "Chamanculo A", "Chamanculo B", "Chamanculo C", "Chamanculo D", "Malanga", "Minkadjuine", "Munhuana", "Unidade 7", "Xipamanine", "Mafalala", "Maxaquene A", "Maxaquene B", "Maxaquene C", "Maxaquene D", "Polana-Caniço A", "Polana-Caniço B", "Urbanização", "3 de Fevereiro", "Albazine", "Costa do Sol", "Ferroviário", "F.P.L.M.", "Hulene A", "Hulene B", "Laulane", "Mahotas", "Mavalane A", "Mavalane B", "25 de Junho A", "25 de Junho B", "Bagamoyo", "George Dimitrov", "Inhagóia A", "Inhagóia B", "Jardim", "Luís Cabral", "Magoanine A", "Magoanine B", "Magoanine C", "Malhazine", "Nsalene", "Zimpeto", "Inguane", "Nhanquene", "Ribzwene", "Chali", "Chamissava", "Guachene", "Inguide"],
+  "Matola": ["Matola A", "Matola B", "Matola C", "Matola D", "Matola F", "Matola G", "Matola H", "Matola J", "Fomento", "Liberdade", "Mussumbuluco", "Malhampsene", "Sikwama", "Machava Sede", "Infulene A", "Trevo", "Patrice Lumumba", "São Dâmaso", "Bunhiça", "Tsalala", "Km-15", "Matlemele", "Nkobe", "Matola Gare", "Singathela", "Nwamatibjana", "Sidwava", "T-3", "Zona Verde", "Ndlavela", "Infulene D", "Acordos de Lusaka", "Vale do Infulene", "Khongolote", "Intaca", "Muhalaze", "1º de Maio", "Boquisso A", "Boquisso B", "Mali", "Ngolhoza", "Mucatine"],
+  "Beira": ["Macuti", "Palmeiras", "Ponta Gêa", "Chaimite", "Pioneiros", "Esturro", "Matacuane", "Macurungo", "Munhava-Central", "Mananga", "Vaz", "Maraza", "Chota", "Alto da Manga", "Nhaconjua", "Chingussura", "Vila Massane", "Inhamízua", "Matadouro", "Mungassa", "Ndunda", "Manga Mascarenha", "Muave", "Nhangau", "Nhangoma", "Tchonja", "Chipangara"],
+  "Nampula": ["Bombeiros", "25 de Setembro", "1º de Maio", "Limoeiros", "Liberdade", "Militar", "Anchilo", "Namachilo", "Namigonha", "Napuri", "Saua-Saua", "22 de Agosto", "Muahivire", "Namiteca", "Muatala", "Mutauhanha", "Muhala", "Namutaqueliua", "Namikopo", "Mutava-Rex", "Napipine", "Carrupeia", "Natikire", "Marrupaniua", "Marrere"],
+  "Chimoio": ["Agostinho Neto", "Nhamatsane", "25 de Junho", "Centro Hípico", "Chissui", "Nhamadjessa", "Trangapassi", "Citembwe", "Hombwa", "Heróis Moçambicanos", "Vila Nova", "Manuel António", "Emília Dausse", "25 de Maio", "Bloco 9", "3 de Fevereiro", "16 de Junho", "7 de Setembro", "Eduardo Mondlane", "Josina Machel", "Chinfura", "Bengo", "Liberdade", "25 de Setembro", "7 de Abril", "Samora Machel", "Cianga", "Sitanya", "1º de Maio", "Francisco Manyanga", "Textáfrica", "Nyamaonya", "Nyawuriri", "Mudzingadzi", "Bairro 1", "Bairro 2", "Bairro 3", "Bairro 4", "Bairro 5"],
+  "Tete": ["Josina Machel", "Mateus S. Mutemba", "Francisco Manyanga", "Matundo", "M'padue", "Filipe Samuel Magaia", "Chingodzi", "Degue", "Samora Moises Machel"],
+  "Quelimane": ["Ícidua", "Chuabo Dembe", "Sangariveira", "Micajuine", "Manhaua"],
+  "Pemba": ["Paquitequete", "Ingonane", "Natite", "Cimento", "Cariacó", "Josina Machel", "Eduardo Mondlane", "Maringanha", "Chuíba", "Alto Gingone", "Mahate", "Muxára", "Metula"]
+};
+function areasForCity(cityName){ return AREAS[cityName] || []; }
+function areaOptionsHtml(cityName){
+  const areas = areasForCity(cityName);
+  const noneLabel = t("area_none");
+  if(!areas.length) return `<option value="">${t("area_manual")}</option>`;
+  return `<option value="">${noneLabel}</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+}
+
 const DAY = 24*60*60*1000;
 const nowTs = Date.now();
 const SEED_REPORTS = [
@@ -1799,7 +1837,7 @@ async function submitReport(report){
     try{
       const { error } = await supa.from("qos_reports").insert([{
         site: SITE_ID,
-        isp: report.isp, stars: report.stars, city: report.city, comment: report.comment,
+        isp: report.isp, stars: report.stars, city: report.city, area: report.area || null, comment: report.comment,
         device_id: SpamGuard.deviceId()
       }]);
       if(error) throw error;
@@ -1858,7 +1896,7 @@ async function submitStatus(entry){
     try{
       const { error } = await supa.from("status_reports").insert([{
         site: SITE_ID,
-        isp: entry.isp, city: entry.city, status: entry.status, comment: entry.comment,
+        isp: entry.isp, city: entry.city, area: entry.area || null, status: entry.status, comment: entry.comment,
         device_id: SpamGuard.deviceId()
       }]);
       if(error) throw error;
@@ -1880,7 +1918,7 @@ async function submitSpeed(entry){
   if(supa){
     const baseRow = {
       site: SITE_ID,
-      isp: entry.isp, city: entry.city, download_mbps: entry.download_mbps, upload_mbps: entry.upload_mbps, comment: entry.comment,
+      isp: entry.isp, city: entry.city, area: entry.area || null, download_mbps: entry.download_mbps, upload_mbps: entry.upload_mbps, comment: entry.comment,
       device_id: SpamGuard.deviceId()
     };
     // Richer columns from the built-in automatic speed test (v1.1.0+). If the
@@ -1926,7 +1964,7 @@ async function submitConversion(entry){
     try{
       const { error } = await supa.from("conversions").insert([{
         site: SITE_ID,
-        to_isp: entry.to_isp, from_isp: entry.from_isp, reasons: entry.reasons, city: entry.city, comment: entry.comment,
+        to_isp: entry.to_isp, from_isp: entry.from_isp, reasons: entry.reasons, city: entry.city, area: entry.area || null, comment: entry.comment,
         device_id: SpamGuard.deviceId()
       }]);
       if(error) throw error;
@@ -2017,6 +2055,8 @@ function applyStaticTranslations(){
 
   const impactCitySelect = document.getElementById("impactCitySelect");
   impactCitySelect.innerHTML = `<option value="">${t("city_manual")}</option>` + CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("");
+  const impactAreaSelectInit = document.getElementById("impactAreaSelect");
+  if(impactAreaSelectInit && impactAreaSelectInit.options.length <= 1) impactAreaSelectInit.innerHTML = areaOptionsHtml(impactCitySelect.value);
 
   document.getElementById("simpleModeLabel").textContent = document.body.classList.contains("simple-mode") ? t("simple_mode_on") : t("simple_mode_off");
 
@@ -2325,6 +2365,9 @@ function renderList(){
                   <option value="">${t("city_manual")}</option>
                   ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
                 </select>
+                <select class="city-select" data-role="statusAreaSelect">
+                  <option value="">${t("area_manual")}</option>
+                </select>
               </div>
               <div class="loc-status" data-role="statusLocStatus"></div>
               <textarea class="comment-box" data-role="statusCommentBox" maxlength="500" placeholder="${t("comment_placeholder")}"></textarea>
@@ -2364,6 +2407,9 @@ function renderList(){
                   <option value="">${t("city_manual")}</option>
                   ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
                 </select>
+                <select class="city-select" data-role="speedAreaSelect">
+                  <option value="">${t("area_manual")}</option>
+                </select>
               </div>
               <div class="loc-status" data-role="speedLocStatus"></div>
               <textarea class="comment-box" data-role="speedCommentBox" maxlength="500" placeholder="${t("comment_placeholder")}"></textarea>
@@ -2394,6 +2440,9 @@ function renderList(){
                 <select class="city-select" data-role="citySelect">
                   <option value="">${t("city_manual")}</option>
                   ${CITIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join("")}
+                </select>
+                <select class="city-select" data-role="areaSelect">
+                  <option value="">${t("area_manual")}</option>
                 </select>
               </div>
               <div class="loc-status" data-role="locStatus"></div>
@@ -2449,6 +2498,7 @@ function renderList(){
     const locBtn = rowEl.querySelector('[data-role="locBtn"]');
     const locStatus = rowEl.querySelector('[data-role="locStatus"]');
     const citySelect = rowEl.querySelector('[data-role="citySelect"]');
+    const areaSelect = rowEl.querySelector('[data-role="areaSelect"]');
 
     locBtn.addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -2462,6 +2512,8 @@ function renderList(){
         const { city, distanceKm } = nearestCity(latitude, longitude);
         rateForm.dataset.city = city;
         citySelect.value = city;
+        delete rateForm.dataset.area;
+        if(areaSelect) areaSelect.innerHTML = areaOptionsHtml(city);
         locStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
       }, err=>{
         locStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
@@ -2471,6 +2523,14 @@ function renderList(){
     citySelect.addEventListener("click", (e)=> e.stopPropagation());
     citySelect.addEventListener("change",(e)=>{
       rateForm.dataset.city = citySelect.value;
+      delete rateForm.dataset.area;
+      if(areaSelect) areaSelect.innerHTML = areaOptionsHtml(citySelect.value);
+    if(areaSelect){
+      areaSelect.addEventListener("click", (e)=> e.stopPropagation());
+      areaSelect.addEventListener("change",(e)=>{
+        rateForm.dataset.area = areaSelect.value;
+      });
+    }
       locStatus.textContent = citySelect.value ? "City set to "+citySelect.value : "";
     });
 
@@ -2497,8 +2557,9 @@ function renderList(){
         return;
       }
       const city = rateForm.dataset.city || "Unknown";
+      const area = rateForm.dataset.area || null;
       const phone = (phoneInput.value||"").trim();
-      submitReport({ isp:name, stars, comment:(commentBox.value||"").trim(), city, ts: Date.now() });
+      submitReport({ isp:name, stars, comment:(commentBox.value||"").trim(), city, area, ts: Date.now() });
       if(phone) upsertCustomer(phone, detectIspFromPhone(phone));
       phoneInput.value = ""; phoneHint.textContent = "";
     });
@@ -2538,6 +2599,7 @@ function renderList(){
     const statusLocBtn = rowEl.querySelector('[data-role="statusLocBtn"]');
     const statusLocStatus = rowEl.querySelector('[data-role="statusLocStatus"]');
     const statusCitySelect = rowEl.querySelector('[data-role="statusCitySelect"]');
+    const statusAreaSelect = rowEl.querySelector('[data-role="statusAreaSelect"]');
 
     statusLocBtn.addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -2551,6 +2613,8 @@ function renderList(){
         const { city, distanceKm } = nearestCity(latitude, longitude);
         statusForm.dataset.city = city;
         statusCitySelect.value = city;
+        delete statusForm.dataset.area;
+        if(statusAreaSelect) statusAreaSelect.innerHTML = areaOptionsHtml(city);
         statusLocStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
       }, err=>{
         statusLocStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
@@ -2560,6 +2624,14 @@ function renderList(){
     statusCitySelect.addEventListener("click", (e)=> e.stopPropagation());
     statusCitySelect.addEventListener("change",(e)=>{
       statusForm.dataset.city = statusCitySelect.value;
+      delete statusForm.dataset.area;
+      if(statusAreaSelect) statusAreaSelect.innerHTML = areaOptionsHtml(statusCitySelect.value);
+    if(statusAreaSelect){
+      statusAreaSelect.addEventListener("click", (e)=> e.stopPropagation());
+      statusAreaSelect.addEventListener("change",(e)=>{
+        statusForm.dataset.area = statusAreaSelect.value;
+      });
+    }
       statusLocStatus.textContent = statusCitySelect.value ? "City set to "+statusCitySelect.value : "";
     });
 
@@ -2575,7 +2647,8 @@ function renderList(){
         return;
       }
       const city = statusForm.dataset.city || "Unknown";
-      submitStatus({ isp:name, city, status, comment:(statusCommentBox.value||"").trim(), ts: Date.now() });
+      const area = statusForm.dataset.area || null;
+      submitStatus({ isp:name, city, area, status, comment:(statusCommentBox.value||"").trim(), ts: Date.now() });
       statusForm.dataset.status = "";
       statusChoices.querySelectorAll(".status-choice").forEach(b=>b.classList.remove("active"));
       statusCommentBox.value = "";
@@ -2596,6 +2669,7 @@ function renderList(){
     const speedLocBtn = rowEl.querySelector('[data-role="speedLocBtn"]');
     const speedLocStatus = rowEl.querySelector('[data-role="speedLocStatus"]');
     const speedCitySelect = rowEl.querySelector('[data-role="speedCitySelect"]');
+    const speedAreaSelect = rowEl.querySelector('[data-role="speedAreaSelect"]');
 
     speedLocBtn.addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -2609,6 +2683,8 @@ function renderList(){
         const { city, distanceKm } = nearestCity(latitude, longitude);
         speedForm.dataset.city = city;
         speedCitySelect.value = city;
+        delete speedForm.dataset.area;
+        if(speedAreaSelect) speedAreaSelect.innerHTML = areaOptionsHtml(city);
         speedLocStatus.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
       }, err=>{
         speedLocStatus.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
@@ -2618,6 +2694,14 @@ function renderList(){
     speedCitySelect.addEventListener("click", (e)=> e.stopPropagation());
     speedCitySelect.addEventListener("change",(e)=>{
       speedForm.dataset.city = speedCitySelect.value;
+      delete speedForm.dataset.area;
+      if(speedAreaSelect) speedAreaSelect.innerHTML = areaOptionsHtml(speedCitySelect.value);
+    if(speedAreaSelect){
+      speedAreaSelect.addEventListener("click", (e)=> e.stopPropagation());
+      speedAreaSelect.addEventListener("change",(e)=>{
+        speedForm.dataset.area = speedAreaSelect.value;
+      });
+    }
       speedLocStatus.textContent = speedCitySelect.value ? "City set to "+speedCitySelect.value : "";
     });
 
@@ -2648,10 +2732,11 @@ function renderList(){
         return;
       }
       const city = speedForm.dataset.city || "Unknown";
+      const area = speedForm.dataset.area || null;
       let extra = {};
       try{ extra = rowEl.dataset.speedExtra ? JSON.parse(rowEl.dataset.speedExtra) : {}; }catch(parseErr){}
       submitSpeed({
-        isp:name, city, download_mbps: downloadVal, upload_mbps: uploadVal,
+        isp:name, city, area, download_mbps: downloadVal, upload_mbps: uploadVal,
         comment:(speedCommentBox.value||"").trim(), ts: Date.now(),
         test_method: extra.test_method || "manual",
         latency_idle_ms: extra.latency_idle_ms ?? null,
@@ -2925,6 +3010,7 @@ document.getElementById("suggestSubmitBtn").addEventListener("click", ()=>{
 document.getElementById("impactLocBtn").addEventListener("click", ()=>{
   const status = document.getElementById("impactLocStatus");
   const citySelect = document.getElementById("impactCitySelect");
+  const areaSelect = document.getElementById("impactAreaSelect");
   if(!navigator.geolocation){
     status.textContent = "Geolocation isn't supported here — pick a city manually.";
     return;
@@ -2934,6 +3020,9 @@ document.getElementById("impactLocBtn").addEventListener("click", ()=>{
     const { latitude, longitude } = pos.coords;
     const { city, distanceKm } = nearestCity(latitude, longitude);
     citySelect.value = city;
+    // Geolocation only ever resolves to a tracked city, never an area — the tester
+    // still picks their own area/suburb by hand (or leaves it blank).
+    if(areaSelect) areaSelect.innerHTML = areaOptionsHtml(city);
     status.textContent = "📍 Nearest tracked city: "+city+" (~"+distanceKm+" km away)";
   }, err=>{
     status.textContent = "Couldn't get your location (" + err.message + ") — pick a city manually.";
@@ -2965,6 +3054,11 @@ document.getElementById("impactPhone").addEventListener("input", ()=>{
 document.getElementById("impactSubmitBtn").addEventListener("click", ()=>{
   const toIsp = document.getElementById("impactToIsp").value;
   const fromIsp = document.getElementById("impactFromIsp").value || null;
+  document.getElementById("impactCitySelect").addEventListener("change", ()=>{
+  const areaSelect = document.getElementById("impactAreaSelect");
+  if(areaSelect) areaSelect.innerHTML = areaOptionsHtml(document.getElementById("impactCitySelect").value);
+});
+
   const city = document.getElementById("impactCitySelect").value || "Unknown";
   const comment = document.getElementById("impactComment").value.trim();
   const reasons = Array.from(document.querySelectorAll('[data-role="reasonCheck"]:checked')).map(el=>el.value);
@@ -2972,7 +3066,8 @@ document.getElementById("impactSubmitBtn").addEventListener("click", ()=>{
   const phone = document.getElementById("impactPhone").value.trim();
   if(!toIsp){ status.textContent = "Please choose which ISP you switched to / signed up with."; return; }
   if(!phone || !isValidPhone(phone)){ status.textContent = t("phone_required_note"); return; }
-  submitConversion({ to_isp: toIsp, from_isp: fromIsp, reasons, city, comment, ts: Date.now() });
+  const area = document.getElementById("impactAreaSelect").value || null;
+  submitConversion({ to_isp: toIsp, from_isp: fromIsp, reasons, city, area, comment, ts: Date.now() });
   upsertCustomer(phone, detectIspFromPhone(phone));
   document.getElementById("impactComment").value = "";
   document.getElementById("impactPhone").value = "";
