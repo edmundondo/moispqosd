@@ -7,6 +7,22 @@ All notable changes to the Mozambique ISP Tracker are recorded here. Format foll
 The version number shown here matches the `<meta name="app-version">` tag in
 `index.html` and the `v{version}` badge in the page's footer.
 
+## [1.3.0] — 2026-09-23
+
+### Added
+- **Email as an alternative contact.** Every "Your phone number" box now has a 📱 Phone / ✉️ Email
+  switch; testers can leave either one. Emails go to the new write-only `customer_emails` table.
+- **International prefix on the phone box.** The box shows a fixed `+258` prefix. Testers can type
+  the local number with or without the leading 0 (`084 123 4567` or `84 123 4567`) or paste a full `+258…`
+  number; it's silently converted to international format (`+258…`) when submitted, and that's the
+  only format stored. Placeholder examples are now this country's own number format.
+
+### Fixed
+- **Follow-up phone numbers were never saved.** The site used `.upsert()` on `customers`, which the
+  database refuses without a public read policy (correctly absent), so every number was rejected.
+  Contacts now go through write-only RPCs (`upsert_contact_phone`, `add_contact_email`).
+- A contact that's filled in but invalid now shows a message instead of being dropped silently.
+
 ## [1.2.0] — 2026-09-23
 
 ### Fixed
