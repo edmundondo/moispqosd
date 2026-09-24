@@ -7,6 +7,12 @@ All notable changes to the Mozambique ISP Tracker are recorded here. Format foll
 The version number shown here matches the `<meta name="app-version">` tag in
 `index.html` and the `v{version}` badge in the page's footer.
 
+## [1.4.2] — 2026-09-23
+
+### Added
+- "Rate by SMS" is back on every Lite page, now addressed to the real rating number `+258840197034`
+  (supplied by Ed); the Lite rating text mentions it again.
+
 ## [1.4.1] — 2026-09-23
 
 ### Fixed
